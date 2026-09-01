@@ -21,57 +21,69 @@
 {% endblock %}
 
 {#
-    Shared by both challenges. Google supports exactly one enterprise.js per page, so the loader is
-    injected once and every field waits on the same queue. The caller sets `recaptcha_render` to the
-    value of the loader's render= parameter, which is the site key for the score challenge and
-    `explicit` for the checkbox one.
+    Shared by both challenges: the readiness queue every field waits on.
 
-    `hl` is omitted unless the bundle sets a locale, which lets Google detect it from the browser.
+    The bundle never loads `enterprise.js`. It cannot know whether the visitor consented to Google,
+    so placing that script on the page is the application's decision, documented in the README. The
+    application adds the loader with `onload=___artackRecaptchaOnload`, which is public API.
+
+    Neither script can rely on landing first, so readiness is settled three ways: the onload
+    callback, a direct check for a library that is already there, and a short poll for a loader
+    that fired its callback before this block ran.
 #}
 {% block recaptcha_enterprise_bootstrap %}
     <script {% if form.vars.script_csp_nonce %}nonce="{{ form.vars.script_csp_nonce }}"{% endif %}>
         (function () {
-            if (!window.___artackRecaptcha) {
-                var state = {queue: [], loaded: false};
+            if (window.___artackRecaptcha) {
+                return;
+            }
 
-                window.___artackRecaptchaOnload = function () {
-                    state.loaded = true;
+            var state = {queue: [], loaded: false};
 
-                    var queue = state.queue;
-                    state.queue = [];
-                    queue.forEach(function (callback) {
-                        callback();
-                    });
-                };
+            var drain = function () {
+                state.loaded = true;
+                window.clearInterval(state.polling);
 
-                window.___artackRecaptcha = {
-                    // grecaptcha.enterprise.ready() does not queue callbacks registered before the
-                    // library exists, so everything needing it goes through here instead. The
-                    // loader's onload= is the only supported readiness signal.
-                    whenReady: function (callback) {
-                        if (state.loaded || (window.grecaptcha && window.grecaptcha.enterprise)) {
-                            grecaptcha.enterprise.ready(callback);
+                var queue = state.queue;
+                state.queue = [];
+                queue.forEach(function (callback) {
+                    callback();
+                });
+            };
 
-                            return;
-                        }
+            var ready = function () {
+                return Boolean(window.grecaptcha && window.grecaptcha.enterprise);
+            };
 
-                        state.queue.push(function () {
-                            grecaptcha.enterprise.ready(callback);
-                        });
+            window.___artackRecaptchaOnload = drain;
+
+            window.___artackRecaptcha = {
+                // grecaptcha.enterprise.ready() does not queue callbacks registered before the
+                // library exists, so everything needing it goes through here instead.
+                whenReady: function (callback) {
+                    if (state.loaded || ready()) {
+                        grecaptcha.enterprise.ready(callback);
+
+                        return;
                     }
-                };
-            }
 
-            // Several fields on one page share a single loader; a second tag is undefined behaviour.
-            if (!document.querySelector('script[data-artack-recaptcha-enterprise]')) {
-                var loader = document.createElement('script');
-                loader.src = 'https://www.google.com/recaptcha/enterprise.js?render={{ recaptcha_render|e('js') }}{% if form.vars.locale %}&hl={{ form.vars.locale|e('js') }}{% endif %}&onload=___artackRecaptchaOnload';
-                loader.async = true;
-                loader.defer = true;
-                loader.setAttribute('data-artack-recaptcha-enterprise', '');
-                {% if form.vars.script_csp_nonce %}loader.setAttribute('nonce', '{{ form.vars.script_csp_nonce|e('js') }}');{% endif %}
-                document.head.appendChild(loader);
-            }
+                    state.queue.push(function () {
+                        grecaptcha.enterprise.ready(callback);
+                    });
+
+                    // The loader may have called ___artackRecaptchaOnload before this block
+                    // defined it, in which case the callback is never coming.
+                    if (!state.polling) {
+                        state.polling = window.setInterval(function () {
+                            if (!ready()) {
+                                return;
+                            }
+
+                            drain();
+                        }, 100);
+                    }
+                }
+            };
         })();
     </script>
 {% endblock %}
@@ -84,7 +96,6 @@
     {{ block('form_widget_simple') }}
 
     {% if form.vars.enabled -%}
-        {%- set recaptcha_render = form.vars.site_key -%}
         {{ block('recaptcha_enterprise_bootstrap') }}
         <script {% if form.vars.script_csp_nonce %}nonce="{{ form.vars.script_csp_nonce }}"{% endif %}>
             (function () {
@@ -193,7 +204,6 @@
     {{ block('form_widget_simple') }}
 
     {% if form.vars.enabled -%}
-        {%- set recaptcha_render = 'explicit' -%}
         {{ block('recaptcha_enterprise_bootstrap') }}
         <div id="{{ form.vars.id }}_widget" class="recaptcha-enterprise__widget"></div>
         <script {% if form.vars.script_csp_nonce %}nonce="{{ form.vars.script_csp_nonce }}"{% endif %}>

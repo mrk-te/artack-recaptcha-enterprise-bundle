@@ -52,7 +52,6 @@ return static function (ContainerConfigurator $container): void {
             '%artack_recaptcha_enterprise.site_key%',
             '%artack_recaptcha_enterprise.enabled%',
             '%artack_recaptcha_enterprise.challenge%',
-            '%artack_recaptcha_enterprise.locale%',
         ])
         ->tag('form.type')
     ;

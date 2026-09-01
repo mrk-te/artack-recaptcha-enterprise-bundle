@@ -38,7 +38,6 @@ final class WidgetRenderingTest extends TestCase
 
     private FormFactoryInterface $factory;
     private FormRenderer $renderer;
-    private string $challenge = RecaptchaEnterpriseType::CHALLENGE_SCORE;
     private bool $enabled = true;
 
     protected function setUp(): void
@@ -51,7 +50,6 @@ final class WidgetRenderingTest extends TestCase
         $html = $this->render();
 
         self::assertStringContainsString('type="hidden"', $html);
-        self::assertStringContainsString('https://www.google.com/recaptcha/enterprise.js?render='.self::SITE_KEY, $html);
         self::assertStringContainsString("grecaptcha.enterprise.execute('".self::SITE_KEY."'", $html);
         self::assertStringNotContainsString('grecaptcha.enterprise.render', $html);
     }
@@ -116,8 +114,7 @@ final class WidgetRenderingTest extends TestCase
 
         self::assertStringContainsString('type="hidden"', $html);
         self::assertStringContainsString('_widget" class="recaptcha-enterprise__widget"', $html);
-        self::assertStringContainsString('render=explicit', $html);
-        self::assertStringContainsString('onload=___artackRecaptchaOnload', $html);
+        self::assertStringContainsString('grecaptcha.enterprise.render(', $html);
         self::assertStringContainsString("sitekey: '".self::SITE_KEY."'", $html);
         self::assertStringContainsString("action: 'contact'", $html);
         self::assertStringContainsString("theme: 'dark'", $html);
@@ -134,17 +131,32 @@ final class WidgetRenderingTest extends TestCase
     }
 
     /**
-     * Google supports exactly one enterprise.js per page, so both challenges must dedupe it —
-     * two score fields on one page is enough to break it.
+     * The bundle must never place a Google script on a page: it cannot know whether the visitor
+     * consented to it. The application adds the loader, after consent, and any number of fields
+     * then share the queue this bootstrap defines.
      */
-    public function testBothChallengesGuardAgainstASecondLoader(): void
+    public function testNeitherChallengeLoadsGoogle(): void
     {
         foreach (['score', 'checkbox'] as $challenge) {
             $html = $this->render(['challenge' => $challenge]);
 
-            self::assertStringContainsString('script[data-artack-recaptcha-enterprise]', $html);
-            self::assertStringContainsString('onload=___artackRecaptchaOnload', $html);
+            self::assertStringNotContainsString('google.com/recaptcha', $html);
+            self::assertStringNotContainsString('createElement', $html);
             self::assertStringContainsString('window.___artackRecaptcha', $html);
+        }
+    }
+
+    /**
+     * The loader's onload= is the documented readiness signal, so the callback is public API and
+     * its name may not drift. The poll covers a library that landed before the bootstrap ran.
+     */
+    public function testTheReadinessSignalsAreBothAvailable(): void
+    {
+        foreach (['score', 'checkbox'] as $challenge) {
+            $html = $this->render(['challenge' => $challenge]);
+
+            self::assertStringContainsString('window.___artackRecaptchaOnload = drain', $html);
+            self::assertStringContainsString('window.setInterval(', $html);
         }
     }
 
@@ -155,28 +167,14 @@ final class WidgetRenderingTest extends TestCase
         self::assertStringNotContainsString('action:', $html);
     }
 
-    public function testTheLocaleIsPassedToTheLoader(): void
-    {
-        self::assertStringContainsString('hl=fr', $this->render(['locale' => 'fr']));
-        self::assertStringContainsString('hl=fr', $this->render(['challenge' => 'checkbox', 'locale' => 'fr']));
-    }
-
-    public function testWithoutALocaleGoogleDetectsIt(): void
-    {
-        foreach (['score', 'checkbox'] as $challenge) {
-            self::assertStringNotContainsString('hl=', $this->render(['challenge' => $challenge]));
-        }
-    }
-
     public function testTheCspNonceIsAppliedToEveryScript(): void
     {
         foreach (['score', 'checkbox'] as $challenge) {
             $html = $this->render(['challenge' => $challenge, 'script_csp_nonce' => 'anonce123']);
 
-            // The bootstrap and the field script, both inline.
+            // The bootstrap and the field script, which are the only two scripts emitted.
             self::assertSame(2, mb_substr_count($html, 'nonce="anonce123"'));
-            // The loader is injected at runtime, so it gets the nonce through setAttribute.
-            self::assertStringContainsString("loader.setAttribute('nonce', 'anonce123')", $html);
+            self::assertSame(2, mb_substr_count($html, '<script'));
         }
     }
 
@@ -238,15 +236,13 @@ final class WidgetRenderingTest extends TestCase
     {
         $this->boot(challenge: RecaptchaEnterpriseType::CHALLENGE_CHECKBOX);
 
-        self::assertStringContainsString('render=explicit', $this->render());
+        self::assertStringContainsString('grecaptcha.enterprise.render(', $this->render());
     }
 
     private function boot(
         bool $enabled = true,
         string $challenge = RecaptchaEnterpriseType::CHALLENGE_SCORE,
-        ?string $locale = null,
     ): void {
-        $this->challenge = $challenge;
         $this->enabled = $enabled;
 
         $twig = new Environment(new FilesystemLoader([
@@ -264,25 +260,24 @@ final class WidgetRenderingTest extends TestCase
         ]));
 
         $this->factory = Forms::createFormFactoryBuilder()
-            ->addType(new RecaptchaEnterpriseType(self::SITE_KEY, $enabled, $challenge, $locale))
+            ->addType(new RecaptchaEnterpriseType(self::SITE_KEY, $enabled, $challenge))
             ->getFormFactory()
         ;
     }
 
     /**
-     * `challenge` and `locale` are bundle settings rather than field options, so they are applied
-     * by rebuilding the type instead of being passed to the field.
+     * `challenge` is a bundle setting rather than a field option, so it is applied by rebuilding
+     * the type instead of being passed to the field.
      *
      * @param array<string, mixed> $options
      */
     private function render(array $options = []): string
     {
         $challenge = is_string($options['challenge'] ?? null) ? (string) $options['challenge'] : null;
-        $locale = is_string($options['locale'] ?? null) ? (string) $options['locale'] : null;
-        unset($options['challenge'], $options['locale']);
+        unset($options['challenge']);
 
-        if (null !== $challenge || null !== $locale) {
-            $this->boot($this->enabled, $challenge ?? $this->challenge, $locale);
+        if (null !== $challenge) {
+            $this->boot($this->enabled, $challenge);
         }
 
         $view = $this->factory->create(RecaptchaEnterpriseType::class, null, $options)->createView();

@@ -41,7 +41,6 @@ final class ArtackRecaptchaEnterpriseExtensionTest extends TestCase
         self::assertSame(0.5, $config['min_score']);
         self::assertSame('deny', $config['on_error']);
         self::assertSame('score', $config['challenge']);
-        self::assertNull($config['locale']);
         self::assertSame('artack_recaptcha_enterprise.client', $config['http_client_service']);
     }
 
@@ -151,18 +150,17 @@ final class ArtackRecaptchaEnterpriseExtensionTest extends TestCase
     }
 
     /**
-     * Both are page-wide, not per field: one enterprise.js load per page, one render= and one hl=.
+     * Page-wide, not per field: the single site_key already points at one kind of key.
      */
-    public function testTheChallengeAndTheLocaleReachTheFormType(): void
+    public function testTheChallengeReachesTheFormType(): void
     {
-        $arguments = $this->load(['challenge' => 'checkbox', 'locale' => 'fr'])
+        $arguments = $this->load(['challenge' => 'checkbox'])
             ->getDefinition(RecaptchaEnterpriseType::class)
             ->getArguments()
         ;
 
         self::assertSame('%artack_recaptcha_enterprise.challenge%', $arguments[2]);
-        self::assertSame('%artack_recaptcha_enterprise.locale%', $arguments[3]);
-        self::assertSame('fr', $this->load(['locale' => 'fr'])->getParameter('artack_recaptcha_enterprise.locale'));
+        self::assertCount(3, $arguments);
     }
 
     public function testTheOutagePolicyIsBoundAsABoolean(): void

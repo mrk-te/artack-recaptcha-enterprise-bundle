@@ -48,7 +48,7 @@ $ composer require artack/recaptcha-enterprise-bundle
 A [Flex recipe](https://github.com/symfony/recipes-contrib/tree/main/artack/recaptcha-enterprise-bundle) registers
 the bundle in `config/bundles.php`, writes `config/packages/artack_recaptcha_enterprise.yaml` and adds the three
 environment variables to `.env`. Flex applies the highest recipe version not above the installed one, so the `0.1`
-recipe covers the whole `0.x` line.
+recipe covers the whole `0.x` line. It cannot add the loader to your layout, which is the third step below.
 
 > ⚠️ This bundle is being used in production, but hasn't reached version 1.0 yet. Therefore, there can be breaking
 > changes between minor versions. I'd recommend that you require the bundle only with the current minor version like
@@ -71,6 +71,33 @@ return [
 Then create `config/packages/artack_recaptcha_enterprise.yaml` as shown below. The symptom of forgetting the first
 step is that the configuration key is rejected as unrecognised, since an unregistered bundle has no extension.
 
+### Adding the loader to your layout
+
+**The bundle never places Google's script on a page — the application does.** This is part of installing the
+bundle, not an optional extra: with no loader there is no token, so the constraint refuses every submission as
+`MISSING` and the visitor is locked out of the form.
+
+Expose the site key to Twig:
+
+```yaml
+# config/packages/twig.yaml
+twig:
+    globals:
+        recaptcha_site_key: '%artack_recaptcha_enterprise.site_key%'
+```
+
+Then add the loader once per page, in your layout, after the visitor has consented to Google:
+
+```twig
+{# templates/base.html.twig — score challenge #}
+<script src="https://www.google.com/recaptcha/enterprise.js?render={{ recaptcha_site_key }}&onload=___artackRecaptchaOnload"
+        async defer></script>
+```
+
+The checkbox challenge uses `render=explicit` instead of the site key. See "Loading enterprise.js" for that
+variant, for the `hl=` language parameter, for the `___artackRecaptchaOnload` readiness contract, and for what an
+application must do while consent is absent.
+
 Configuration
 -------------
 
@@ -85,7 +112,6 @@ artack_recaptcha_enterprise:
     api_key: '%env(resolve:ARTACK_RECAPTCHA_ENTERPRISE_API_KEY)%'
     min_score: 0.5 # default score threshold used by the validator when none is provided
     challenge: score # score (default) or checkbox, see "Choosing the challenge"
-    locale: fr # language of the Google widget; omit to let Google detect it
     on_error: deny # deny (default) or allow, see "When Google cannot be reached"
     http_client_service: artack_recaptcha_enterprise.client # see "Configuring the HTTP client"
 
@@ -274,9 +300,8 @@ final class ContactType extends AbstractType
 | `theme` | `'light'` | checkbox | `light` or `dark` |
 | `size` | `'normal'` | checkbox | `normal` or `compact` |
 
-`challenge` and `locale` are **not** form options. Google supports one `enterprise.js` load per page and its
-`render=` and `hl=` parameters take one value each, so both are bundle settings and every field on a page shares
-them.
+`challenge` is **not** a form option. Google supports one `enterprise.js` load per page and its `render=`
+parameter takes one value, so the challenge is a bundle setting and every field on a page shares it.
 
 The Twig theme is prepended automatically. In the `score` challenge the bundle calls
 `grecaptcha.enterprise.execute` on submit, fills the hidden field and resubmits with `requestSubmit()`, which
@@ -285,7 +310,8 @@ into the hidden field by the widget callback as soon as the visitor solves it.
 
 To restyle one challenge without touching the other, override the `recaptcha_enterprise_score_widget`
 or `recaptcha_enterprise_checkbox_widget` block rather than `recaptcha_enterprise_widget`, which only
-dispatches between them. Both call `recaptcha_enterprise_bootstrap`, which emits the shared loader.
+dispatches between them. Both call `recaptcha_enterprise_bootstrap`, which emits the readiness queue every
+field waits on.
 
 ### Showing the error
 
@@ -303,16 +329,44 @@ without the bundle's own row block the visitor would be refused with no message 
 
 Set `error_bubbling: true` on the field if you would rather collect the message in the form-level summary.
 
-### One loader, several fields
+### Loading enterprise.js
 
-Any number of fields of the configured challenge can appear on one page. They share a single loader tag, marked
-with `data-artack-recaptcha-enterprise`, and a readiness queue on `window.___artackRecaptcha`. Two challenges
-cannot be mixed on one page: the loader's `render=` parameter takes one value, and `site_key` is a single global
-value pointing at one key type anyway. That is why `challenge` and `locale` are bundle settings rather than form
-options.
+**The bundle never loads Google's script — the application does.** The bundle cannot know whether the visitor
+consented to Google, and a script placed on the page without consent is the application's liability, so this is
+deliberately not configurable: a flag would still ship a default that loads it.
 
-A visitor who submits before the loader has landed is safe — the submission is held and replayed once
-`enterprise.js` fires its `onload`, rather than throwing and leaving the form silently dead.
+"Adding the loader to your layout" gives the minimum; this is the full contract. Add the loader once per page,
+after consent, with `onload=___artackRecaptchaOnload`:
+
+```twig
+{# score: the site key is bound to the loader at load time #}
+<script src="https://www.google.com/recaptcha/enterprise.js?render={{ site_key }}&hl=fr&onload=___artackRecaptchaOnload"
+        async defer></script>
+
+{# checkbox: the widgets are rendered explicitly, one per field #}
+<script src="https://www.google.com/recaptcha/enterprise.js?render=explicit&hl=fr&onload=___artackRecaptchaOnload"
+        async defer></script>
+```
+
+The two tags are not interchangeable: the `render=` value follows the `challenge` setting, and a page must never
+carry both — which the single `site_key` already prevents. `hl=` is yours to set, and omitting it lets Google
+detect the language from the browser.
+
+`___artackRecaptchaOnload` is public API. It is the only supported readiness signal: `grecaptcha.enterprise.ready()`
+does not queue callbacks registered before the library exists, so the bundle queues everything itself and drains
+the queue when the callback fires. Nothing depends on the two scripts landing in a given order — a library that is
+already there is detected directly, and a callback that fired before the bundle's own script ran is caught by a
+short poll.
+
+Any number of fields of the configured challenge can then appear on one page: several score fields share the
+single bound key, several checkbox fields each render into their own container. A visitor who submits before the
+library has landed is safe — the submission is held and replayed, rather than throwing and leaving the form
+silently dead.
+
+> ⚠️ **GDPR: with no loader there is no token**, so the constraint refuses every submission and the visitor is
+> locked out of the form. `on_error: allow` does not rescue this — it covers an unreachable Google, while a
+> missing token is a legitimate `MISSING` refusal. An application that omits the script until consent is given
+> must also skip the constraint until then, with a validation group or by not adding the field at all.
 
 ### When the token cannot be fetched
 
@@ -388,10 +442,9 @@ Upgrading from 0.2.0
 `0.2.0` is the last release, and everything below changed since. The bundle is pre-1.0, so these breaks land
 without a deprecation cycle.
 
-**No configuration change is required.** `enabled`, `site_key`, `project_id`, `api_key` and `min_score` keep their
-names and meanings, and `on_error`, `locale` and `http_client_service` are new and optional.
-Applications that only declare the config, add the form type and use the constraint have nothing
-to do.
+**One change is required**: the application now loads `enterprise.js` itself, see "Loading enterprise.js". The
+configuration keys are otherwise untouched — `enabled`, `site_key`, `project_id`, `api_key` and `min_score` keep
+their names and meanings, and `on_error` and `http_client_service` are new and optional.
 
 ### Behaviour
 
@@ -402,8 +455,10 @@ to do.
   prepends onto `framework.http_client` with a two second timeout and a five second `max_duration`. The call
   previously inherited `default_socket_timeout`, so an unresponsive Google held the worker instead of reaching
   the `on_error` policy. Redeclare that key to change the timeouts or anything else about the transport.
-- **A page emits one loader tag, not one per field.** Two score fields on one page used to produce two
-  `enterprise.js` tags, which Google does not support.
+- **The bundle no longer loads `enterprise.js`.** It cannot know whether the visitor consented to Google, so the
+  application adds the loader itself, with `onload=___artackRecaptchaOnload`, and decides when. Without it there
+  is no token and every submission is refused as `MISSING`. This also fixes the two score fields on one page that
+  used to produce two `enterprise.js` tags, which Google does not support. See "Loading enterprise.js".
 - **The score check now fails closed.** An assessment carrying no risk analysis used to pass the threshold
   silently; it is now refused. Set `min_score: 0` to keep the old behaviour, which is also what checkbox keys
   without score based protection need.
@@ -435,13 +490,12 @@ to do.
   one request. Use the `Result` returned by `verify()`, or `$violation->getCause()` inside a validator.
 - **`InvalidReason::fromName()` is now `fromApiValue()`**, which is what it always did: it matches on the value
   the API sent, not on the PHP case name.
-- **The `challenge` and `locale` form options are removed.** Both drive the single per-page loader tag, so they
-  are bundle settings now: `challenge` already was one, and `locale` becomes one. A per-field `challenge` never
-  worked — it kept the single global `site_key`, so it sent a key of the wrong type. Move `'locale' => 'fr'`
-  from the field to `artack_recaptcha_enterprise.locale`; the default changed from `en` to unset, which lets
-  Google detect the language rather than forcing English.
-- **`RecaptchaEnterpriseType` takes a fourth constructor argument**, the locale. Only code instantiating the type
-  by hand is affected.
+- **The `challenge` and `locale` form options are removed.** `challenge` is a bundle setting, which it already
+  was; a per-field override never worked, since it kept the single global `site_key` and so sent a key of the
+  wrong type. `locale` is gone entirely: it only ever produced the loader's `hl=`, which the application now
+  writes on its own script tag.
+- **`RecaptchaEnterpriseType` takes a third constructor argument**, the challenge. Only code instantiating the
+  type by hand is affected.
 
 ### Features
 

@@ -26,15 +26,13 @@ final class RecaptchaEnterpriseType extends AbstractType
     public const CHALLENGE_CHECKBOX = 'checkbox';
 
     /**
-     * The challenge and the locale are application-wide, not per field: Google supports one
-     * enterprise.js load per page, and its render= and hl= parameters take one value each. The
-     * single site_key already settles the challenge anyway, since the two need different key types.
+     * The challenge is application-wide, not per field: the single site_key settles it anyway,
+     * since the two challenges need different kinds of key in the Google console.
      */
     public function __construct(
         private readonly string $siteKey,
         private readonly bool $enabled,
         private readonly string $challenge = self::CHALLENGE_SCORE,
-        private readonly ?string $locale = null,
     ) {}
 
     public function getParent(): string
@@ -48,7 +46,6 @@ final class RecaptchaEnterpriseType extends AbstractType
         $view->vars['enabled'] = $this->enabled;
         $view->vars['challenge'] = $this->challenge;
         $view->vars['action_name'] = $options['action_name'];
-        $view->vars['locale'] = $this->locale;
         $view->vars['theme'] = $options['theme'];
         $view->vars['size'] = $options['size'];
         $view->vars['script_csp_nonce'] = $options['script_csp_nonce'];
