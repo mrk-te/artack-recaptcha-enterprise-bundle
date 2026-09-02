@@ -48,7 +48,6 @@ final class RecaptchaEnterpriseType extends AbstractType
         $view->vars['action_name'] = $options['action_name'];
         $view->vars['theme'] = $options['theme'];
         $view->vars['size'] = $options['size'];
-        $view->vars['script_csp_nonce'] = $options['script_csp_nonce'];
     }
 
     public function configureOptions(OptionsResolver $resolver): void
@@ -58,7 +57,6 @@ final class RecaptchaEnterpriseType extends AbstractType
             'action_name' => null,
             'theme' => 'light',
             'size' => 'normal',
-            'script_csp_nonce' => null,
         ]);
 
         // theme and size are ignored by the score challenge, which renders nothing visible.
@@ -66,7 +64,6 @@ final class RecaptchaEnterpriseType extends AbstractType
         $resolver->setAllowedValues('size', ['normal', 'compact']);
 
         $resolver->setAllowedTypes('action_name', ['null', 'string']);
-        $resolver->setAllowedTypes('script_csp_nonce', ['null', 'string']);
     }
 
     public function getBlockPrefix(): string

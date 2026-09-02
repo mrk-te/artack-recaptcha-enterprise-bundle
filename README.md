@@ -71,11 +71,17 @@ return [
 Then create `config/packages/artack_recaptcha_enterprise.yaml` as shown below. The symptom of forgetting the first
 step is that the configuration key is rejected as unrecognised, since an unregistered bundle has no extension.
 
-### Adding the loader to your layout
+### Adding the scripts to your layout
 
-**The bundle never places Google's script on a page — the application does.** This is part of installing the
-bundle, not an optional extra: with no loader there is no token, so the constraint refuses every submission as
-`MISSING` and the visitor is locked out of the form.
+The bundle ships the submission handling as an asset and **never places Google's script on a page — the
+application does**. Both tags are part of installing the bundle, not an optional extra: with no loader there is
+no token, so the constraint refuses every submission as `MISSING` and the visitor is locked out of the form.
+
+Publish the asset, which Flex's `auto-scripts` already does on every `composer install`:
+
+```shell
+$ php bin/console assets:install public
+```
 
 Expose the site key to Twig:
 
@@ -86,17 +92,25 @@ twig:
         recaptcha_site_key: '%artack_recaptcha_enterprise.site_key%'
 ```
 
-Then add the loader once per page, in your layout, after the visitor has consented to Google:
+Then add both scripts once per page, in your layout, the Google one only after the visitor has consented:
 
 ```twig
-{# templates/base.html.twig — score challenge #}
-<script src="https://www.google.com/recaptcha/enterprise.js?render={{ recaptcha_site_key }}&onload=___artackRecaptchaOnload"
+{# score: the site key is bound to the loader at load time #}
+<script src="https://www.google.com/recaptcha/enterprise.js?render={{ site_key }}&hl=fr&onload=artackRecaptchaOnload"
         async defer></script>
+
+{# checkbox: the widgets are rendered explicitly, one per field #}
+<script src="https://www.google.com/recaptcha/enterprise.js?render=explicit&hl=fr&onload=artackRecaptchaOnload"
+        async defer></script>
+
+{# both challenges: the bundle's submission handling, no consent needed #}
+<script src="{{ asset('bundles/artackrecaptchaenterprise/recaptcha-enterprise.js') }}" defer></script>
 ```
 
-The checkbox challenge uses `render=explicit` instead of the site key. See "Loading enterprise.js" for that
-variant, for the `hl=` language parameter, for the `___artackRecaptchaOnload` readiness contract, and for what an
-application must do while consent is absent.
+The bundle's own asset carries no personal data and may be loaded unconditionally; only the Google tag is subject
+to consent. The checkbox challenge uses `render=explicit` instead of the site key. See "Loading the scripts" for
+that variant, for the `hl=` language parameter, for the `artackRecaptchaOnload` readiness contract, and for what
+an application must do while consent is absent.
 
 Configuration
 -------------
@@ -296,22 +310,22 @@ final class ContactType extends AbstractType
 | Option | Default | Applies to | Description |
 |---|---|---|---|
 | `action_name` | `null` | both | Sent to Google, and matched by the constraint when it also sets `actionName` |
-| `script_csp_nonce` | `null` | both | Nonce applied to every emitted script tag |
 | `theme` | `'light'` | checkbox | `light` or `dark` |
 | `size` | `'normal'` | checkbox | `normal` or `compact` |
 
 `challenge` is **not** a form option. Google supports one `enterprise.js` load per page and its `render=`
 parameter takes one value, so the challenge is a bundle setting and every field on a page shares it.
 
-The Twig theme is prepended automatically. In the `score` challenge the bundle calls
-`grecaptcha.enterprise.execute` on submit, fills the hidden field and resubmits with `requestSubmit()`, which
-preserves the clicked button and runs the other submit listeners. In the `checkbox` challenge the token is written
-into the hidden field by the widget callback as soon as the visitor solves it.
+The Twig theme is prepended automatically. It emits no JavaScript: the field carries `data-artack-recaptcha`
+attributes, and the shipped asset acts on them. In the `score` challenge it calls `grecaptcha.enterprise.execute`
+on submit, fills the hidden field and resubmits with `requestSubmit()`, which preserves the clicked button and
+runs the other submit listeners. In the `checkbox` challenge the token is written into the hidden field by the
+widget callback as soon as the visitor solves it.
 
 To restyle one challenge without touching the other, override the `recaptcha_enterprise_score_widget`
 or `recaptcha_enterprise_checkbox_widget` block rather than `recaptcha_enterprise_widget`, which only
-dispatches between them. Both call `recaptcha_enterprise_bootstrap`, which emits the readiness queue every
-field waits on.
+dispatches between them. Keep the `data-artack-recaptcha` attributes on the input and, for checkbox, the
+`data-artack-recaptcha-container` div: they are how the asset finds the field.
 
 ### Showing the error
 
@@ -329,39 +343,53 @@ without the bundle's own row block the visitor would be refused with no message 
 
 Set `error_bubbling: true` on the field if you would rather collect the message in the form-level summary.
 
-### Loading enterprise.js
+### Loading the scripts
 
 **The bundle never loads Google's script — the application does.** The bundle cannot know whether the visitor
 consented to Google, and a script placed on the page without consent is the application's liability, so this is
 deliberately not configurable: a flag would still ship a default that loads it.
 
-"Adding the loader to your layout" gives the minimum; this is the full contract. Add the loader once per page,
-after consent, with `onload=___artackRecaptchaOnload`:
+"Adding the scripts to your layout" gives the minimum; this is the full contract. Add the loader once per page,
+after consent, with `onload=artackRecaptchaOnload`, alongside the bundle's own asset:
 
 ```twig
 {# score: the site key is bound to the loader at load time #}
-<script src="https://www.google.com/recaptcha/enterprise.js?render={{ site_key }}&hl=fr&onload=___artackRecaptchaOnload"
+<script src="https://www.google.com/recaptcha/enterprise.js?render={{ site_key }}&hl=fr&onload=artackRecaptchaOnload"
         async defer></script>
 
 {# checkbox: the widgets are rendered explicitly, one per field #}
-<script src="https://www.google.com/recaptcha/enterprise.js?render=explicit&hl=fr&onload=___artackRecaptchaOnload"
+<script src="https://www.google.com/recaptcha/enterprise.js?render=explicit&hl=fr&onload=artackRecaptchaOnload"
         async defer></script>
+
+{# both challenges: the bundle's submission handling, no consent needed #}
+<script src="{{ asset('bundles/artackrecaptchaenterprise/recaptcha-enterprise.js') }}" defer></script>
 ```
 
 The two tags are not interchangeable: the `render=` value follows the `challenge` setting, and a page must never
 carry both — which the single `site_key` already prevents. `hl=` is yours to set, and omitting it lets Google
 detect the language from the browser.
 
-`___artackRecaptchaOnload` is public API. It is the only supported readiness signal: `grecaptcha.enterprise.ready()`
-does not queue callbacks registered before the library exists, so the bundle queues everything itself and drains
+`artackRecaptchaOnload` is public API. It is the only supported readiness signal: `grecaptcha.enterprise.ready()`
+does not queue callbacks registered before the library exists, so the asset queues everything itself and drains
 the queue when the callback fires. Nothing depends on the two scripts landing in a given order — a library that is
-already there is detected directly, and a callback that fired before the bundle's own script ran is caught by a
-short poll.
+already there is detected directly, and a callback that fired before the asset ran is caught by a short poll.
 
 Any number of fields of the configured challenge can then appear on one page: several score fields share the
 single bound key, several checkbox fields each render into their own container. A visitor who submits before the
 library has landed is safe — the submission is held and replayed, rather than throwing and leaving the form
 silently dead.
+
+The asset also exposes `window.artackRecaptcha`:
+
+| Member | Purpose |
+|---|---|
+| `refresh(root)` | Wire up fields added after load — Turbo, Stimulus, an AJAX-loaded modal. Idempotent, so calling it on the whole document again is safe. |
+| `whenReady(callback)` | Run a callback once `grecaptcha.enterprise` exists, for application code of your own. |
+
+```js
+// after injecting a form into the page
+window.artackRecaptcha.refresh(modal);
+```
 
 > ⚠️ **GDPR: with no loader there is no token**, so the constraint refuses every submission and the visitor is
 > locked out of the form. `on_error: allow` does not rescue this — it covers an unreachable Google, while a
@@ -436,15 +464,24 @@ $ make test PHP_VERSION=8.4
 `composer.lock` is not committed. This is a library, so consumers resolve their own dependency versions and a committed
 lock file would only mislead the matrix build.
 
-Upgrading from 0.2.0
+Upgrading from artack/recaptcha-enterprise-bundle:0.2.0
 --------------------
 
-`0.2.0` is the last release, and everything below changed since. The bundle is pre-1.0, so these breaks land
-without a deprecation cycle.
+What changed : 
 
-**One change is required**: the application now loads `enterprise.js` itself, see "Loading enterprise.js". The
-configuration keys are otherwise untouched — `enabled`, `site_key`, `project_id`, `api_key` and `min_score` keep
-their names and meanings, and `on_error` and `http_client_service` are new and optional.
+- **New feature.** The `checkbox` challenge sits beside the invisible `score` one. It is an application wide
+  choice, not a form option: `site_key` is a single global value and the two challenges need different key types.
+- **Requirements.** Symfony `5.4`, `6.4` and `7.4` are supported alongside `8.x`; `7.0` to `7.3` are not.
+  PHP stays at `^8.2`, and `symfony/http-foundation` became an explicit requirement.
+- **Configuration.** Every existing key keeps its name and meaning; `challenge`, `on_error` and
+  `http_client_service` are new and optional. The `locale` and `script_csp_nonce` form options are removed,
+  `theme` and `size` are new.
+- **Frontend.** The bundle ships the submission handling as an asset and no longer emits any inline JavaScript,
+  but it never loads Google's `enterprise.js`: the application adds that tag itself, once it has consent.
+- **Backend.** Talking to the API moved out of `Verifier` into a `GatewayInterface`: the gateway translates,
+  the verifier decides.
+- **API.** `Artack\RecaptchaEnterpriseBundle\Service\` is gone, `Verifier` and `Result` changed shape, and
+  `getLatestResult()` is removed. Code going through the container or `VerifierInterface::verify()` is unaffected.
 
 ### Behaviour
 
@@ -456,9 +493,17 @@ their names and meanings, and `on_error` and `http_client_service` are new and o
   previously inherited `default_socket_timeout`, so an unresponsive Google held the worker instead of reaching
   the `on_error` policy. Redeclare that key to change the timeouts or anything else about the transport.
 - **The bundle no longer loads `enterprise.js`.** It cannot know whether the visitor consented to Google, so the
-  application adds the loader itself, with `onload=___artackRecaptchaOnload`, and decides when. Without it there
-  is no token and every submission is refused as `MISSING`. This also fixes the two score fields on one page that
-  used to produce two `enterprise.js` tags, which Google does not support. See "Loading enterprise.js".
+  application adds the loader itself, with `onload=artackRecaptchaOnload`, and decides when. Without it there is
+  no token and every submission is refused as `MISSING`. This also fixes the two score fields on one page that
+  used to produce two `enterprise.js` tags, which Google does not support. See "Loading the scripts".
+- **The theme emits no JavaScript.** The submission handling ships as
+  `public/bundles/artackrecaptchaenterprise/recaptcha-enterprise.js`, installed by `assets:install` and loaded by
+  the application, and the field carries `data-artack-recaptcha` attributes the asset acts on. An application
+  that overrode a widget block to change the markup must keep those attributes; one that overrode it to change
+  the behaviour should now replace or wrap the asset.
+- **The `script_csp_nonce` form option is removed.** It existed only to let the theme's inline `<script>` tags
+  pass a CSP, and there are none left. The bundle's asset is an external file, covered by `script-src 'self'`,
+  and the application nonces its own tags if its policy needs it.
 - **The score check now fails closed.** An assessment carrying no risk analysis used to pass the threshold
   silently; it is now refused. Set `min_score: 0` to keep the old behaviour, which is also what checkbox keys
   without score based protection need.

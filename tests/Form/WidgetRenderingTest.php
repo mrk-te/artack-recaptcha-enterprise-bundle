@@ -34,6 +34,7 @@ use function is_string;
 final class WidgetRenderingTest extends TestCase
 {
     private const SITE_KEY = 'asitekey123';
+    private const FIELD_ID = 'recaptcha_enterprise';
     private const THEME = 'Form/recaptcha_enterprise_widget.html.twig';
 
     private FormFactoryInterface $factory;
@@ -45,57 +46,15 @@ final class WidgetRenderingTest extends TestCase
         $this->boot();
     }
 
-    public function testTheScoreChallengeRendersTheInvisibleIntegration(): void
+    public function testTheScoreChallengeDescribesTheFieldWithDataAttributes(): void
     {
         $html = $this->render();
 
         self::assertStringContainsString('type="hidden"', $html);
-        self::assertStringContainsString("grecaptcha.enterprise.execute('".self::SITE_KEY."'", $html);
-        self::assertStringNotContainsString('grecaptcha.enterprise.render', $html);
-    }
-
-    public function testTheScoreChallengeResubmitsWithTheClickedButton(): void
-    {
-        $html = $this->render();
-
-        self::assertStringContainsString('form.requestSubmit(submitter)', $html);
-        // The sentinel that lets the resubmit through is script state, never the field value: a
-        // stored token would be a spent one.
-        self::assertStringContainsString('if (resubmitting)', $html);
-        self::assertStringNotContainsString('if (field.value)', $html);
-    }
-
-    public function testTheScoreChallengeWaitsForTheLibraryBeforeSubmitting(): void
-    {
-        $html = $this->render();
-
-        // Calling grecaptcha.enterprise.ready() directly throws when the loader has not landed,
-        // which would leave the form prevented and silently dead.
-        self::assertStringContainsString('window.___artackRecaptcha.whenReady(', $html);
-        self::assertStringNotContainsString('grecaptcha.enterprise.ready(function', $html);
-    }
-
-    public function testTheScoreChallengeHandlesAFailedExecution(): void
-    {
-        $html = $this->render();
-
-        self::assertStringContainsString('.catch(abandon)', $html);
-        // A loader that never arrives must not take the submission down with it.
-        self::assertStringContainsString('window.setTimeout(abandon', $html);
-        self::assertStringContainsString("new CustomEvent('artack-recaptcha:error'", $html);
-    }
-
-    public function testTheScoreChallengeOmitsAnAbsentAction(): void
-    {
-        self::assertStringContainsString(
-            "grecaptcha.enterprise.execute('".self::SITE_KEY."')",
-            $this->render(),
-        );
-
-        self::assertStringContainsString(
-            "grecaptcha.enterprise.execute('".self::SITE_KEY."', {action: 'contact'})",
-            $this->render(['action_name' => 'contact']),
-        );
+        self::assertStringContainsString('data-artack-recaptcha="score"', $html);
+        self::assertStringContainsString('data-artack-recaptcha-sitekey="'.self::SITE_KEY.'"', $html);
+        // The score challenge renders nothing visible, so there is no container.
+        self::assertStringNotContainsString('data-artack-recaptcha-container', $html);
     }
 
     public function testTheScoreChallengeIsTheDefault(): void
@@ -103,78 +62,82 @@ final class WidgetRenderingTest extends TestCase
         self::assertSame($this->render(), $this->render(['challenge' => 'score']));
     }
 
-    public function testTheCheckboxChallengeRendersTheExplicitIntegration(): void
+    public function testTheCheckboxChallengeDescribesItsContainer(): void
     {
         $html = $this->render([
             'challenge' => 'checkbox',
-            'action_name' => 'contact',
             'theme' => 'dark',
             'size' => 'compact',
         ]);
 
-        self::assertStringContainsString('type="hidden"', $html);
-        self::assertStringContainsString('_widget" class="recaptcha-enterprise__widget"', $html);
-        self::assertStringContainsString('grecaptcha.enterprise.render(', $html);
-        self::assertStringContainsString("sitekey: '".self::SITE_KEY."'", $html);
-        self::assertStringContainsString("action: 'contact'", $html);
-        self::assertStringContainsString("theme: 'dark'", $html);
-        self::assertStringContainsString("size: 'compact'", $html);
-        self::assertStringNotContainsString('grecaptcha.enterprise.execute', $html);
-    }
-
-    public function testTheCheckboxChallengeClearsTheFieldWhenTheTokenExpires(): void
-    {
-        $html = $this->render(['challenge' => 'checkbox']);
-
-        self::assertStringContainsString("'expired-callback'", $html);
-        self::assertStringContainsString("'error-callback'", $html);
+        self::assertStringContainsString('data-artack-recaptcha="checkbox"', $html);
+        self::assertStringContainsString('class="recaptcha-enterprise__widget"', $html);
+        self::assertStringContainsString('data-artack-recaptcha-container="'.self::FIELD_ID.'"', $html);
+        self::assertStringContainsString('data-artack-recaptcha-theme="dark"', $html);
+        self::assertStringContainsString('data-artack-recaptcha-size="compact"', $html);
     }
 
     /**
-     * The bundle must never place a Google script on a page: it cannot know whether the visitor
-     * consented to it. The application adds the loader, after consent, and any number of fields
-     * then share the queue this bootstrap defines.
+     * The container is matched to its field by id, so several checkbox widgets on one page each
+     * render into their own div rather than fighting over the first one.
      */
-    public function testNeitherChallengeLoadsGoogle(): void
+    public function testTheContainerCarriesTheFieldId(): void
+    {
+        $html = $this->render(['challenge' => 'checkbox']);
+
+        self::assertStringContainsString('id="'.self::FIELD_ID.'"', $html);
+        self::assertStringContainsString('data-artack-recaptcha-container="'.self::FIELD_ID.'"', $html);
+    }
+
+    /**
+     * An unset action must be omitted rather than sent as an empty string, which Google rejects.
+     */
+    public function testTheActionIsOmittedWhenAbsent(): void
     {
         foreach (['score', 'checkbox'] as $challenge) {
-            $html = $this->render(['challenge' => $challenge]);
+            self::assertStringNotContainsString(
+                'data-artack-recaptcha-action',
+                $this->render(['challenge' => $challenge]),
+            );
 
+            self::assertStringContainsString(
+                'data-artack-recaptcha-action="contact"',
+                $this->render(['challenge' => $challenge, 'action_name' => 'contact']),
+            );
+        }
+    }
+
+    /**
+     * The behaviour ships as an asset the application loads. A theme emitting inline script would
+     * force a CSP nonce back into the bundle and duplicate the same handler once per field.
+     */
+    public function testNeitherChallengeEmitsScript(): void
+    {
+        foreach (['score', 'checkbox'] as $challenge) {
+            $html = $this->render(['challenge' => $challenge, 'action_name' => 'contact']);
+
+            self::assertStringNotContainsString('<script', $html);
+            self::assertStringNotContainsString('nonce', $html);
+            // The bundle must never place a Google script on a page: it cannot know whether the
+            // visitor consented to it.
             self::assertStringNotContainsString('google.com/recaptcha', $html);
-            self::assertStringNotContainsString('createElement', $html);
-            self::assertStringContainsString('window.___artackRecaptcha', $html);
         }
     }
 
     /**
-     * The loader's onload= is the documented readiness signal, so the callback is public API and
-     * its name may not drift. The poll covers a library that landed before the bootstrap ran.
+     * A disabled bundle must leave a field the asset does not pick up, rather than one it wires to
+     * a site key that is not meant to be used.
      */
-    public function testTheReadinessSignalsAreBothAvailable(): void
+    public function testADisabledBundleEmitsNoDataAttributes(): void
     {
+        $this->boot(enabled: false);
+
         foreach (['score', 'checkbox'] as $challenge) {
             $html = $this->render(['challenge' => $challenge]);
 
-            self::assertStringContainsString('window.___artackRecaptchaOnload = drain', $html);
-            self::assertStringContainsString('window.setInterval(', $html);
-        }
-    }
-
-    public function testTheCheckboxChallengeOmitsAnAbsentAction(): void
-    {
-        $html = $this->render(['challenge' => 'checkbox']);
-
-        self::assertStringNotContainsString('action:', $html);
-    }
-
-    public function testTheCspNonceIsAppliedToEveryScript(): void
-    {
-        foreach (['score', 'checkbox'] as $challenge) {
-            $html = $this->render(['challenge' => $challenge, 'script_csp_nonce' => 'anonce123']);
-
-            // The bootstrap and the field script, which are the only two scripts emitted.
-            self::assertSame(2, mb_substr_count($html, 'nonce="anonce123"'));
-            self::assertSame(2, mb_substr_count($html, '<script'));
+            self::assertStringContainsString('type="hidden"', $html);
+            self::assertStringNotContainsString('data-artack-recaptcha', $html);
+            self::assertStringNotContainsString('recaptcha-enterprise__widget', $html);
         }
     }
 
@@ -194,8 +157,6 @@ final class WidgetRenderingTest extends TestCase
 
             self::assertStringNotContainsString('aspenttoken123', $html);
             self::assertStringNotContainsString('value=', $html);
-            // A browser restoring form state on back-navigation is the other way it comes back.
-            self::assertStringContainsString("field.value = ''", $html);
         }
     }
 
@@ -220,23 +181,11 @@ final class WidgetRenderingTest extends TestCase
         }
     }
 
-    public function testADisabledBundleRendersOnlyTheHiddenField(): void
-    {
-        $this->boot(enabled: false);
-
-        foreach (['score', 'checkbox'] as $challenge) {
-            $html = $this->render(['challenge' => $challenge]);
-
-            self::assertStringContainsString('type="hidden"', $html);
-            self::assertStringNotContainsString('<script', $html);
-        }
-    }
-
     public function testTheConfiguredDefaultChallengeIsUsed(): void
     {
         $this->boot(challenge: RecaptchaEnterpriseType::CHALLENGE_CHECKBOX);
 
-        self::assertStringContainsString('grecaptcha.enterprise.render(', $this->render());
+        self::assertStringContainsString('data-artack-recaptcha="checkbox"', $this->render());
     }
 
     private function boot(

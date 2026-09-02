@@ -33,7 +33,6 @@ final class RecaptchaEnterpriseTypeTest extends TypeTestCase
         self::assertNull($view->vars['action_name']);
         self::assertSame('light', $view->vars['theme']);
         self::assertSame('normal', $view->vars['size']);
-        self::assertNull($view->vars['script_csp_nonce']);
     }
 
     public function testOptionsArePassedToTheView(): void
@@ -42,13 +41,11 @@ final class RecaptchaEnterpriseTypeTest extends TypeTestCase
             'action_name' => 'contact',
             'theme' => 'dark',
             'size' => 'compact',
-            'script_csp_nonce' => 'a-nonce',
         ])->createView();
 
         self::assertSame('contact', $view->vars['action_name']);
         self::assertSame('dark', $view->vars['theme']);
         self::assertSame('compact', $view->vars['size']);
-        self::assertSame('a-nonce', $view->vars['script_csp_nonce']);
     }
 
     public function testTheConfiguredChallengeBecomesTheDefault(): void
