@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\Tests\Fixtures;
+namespace Codein\RecaptchaEnterpriseBundle\Tests\Fixtures;
 
-use Artack\RecaptchaEnterpriseBundle\Assessment\Assessment;
-use Artack\RecaptchaEnterpriseBundle\Assessment\AssessmentRequest;
-use Artack\RecaptchaEnterpriseBundle\Assessment\Exception\AssessmentExceptionInterface;
-use Artack\RecaptchaEnterpriseBundle\Assessment\GatewayInterface;
+use Codein\RecaptchaEnterpriseBundle\Assessment\Assessment;
+use Codein\RecaptchaEnterpriseBundle\Assessment\AssessmentRequest;
+use Codein\RecaptchaEnterpriseBundle\Assessment\Exception\AssessmentExceptionInterface;
+use Codein\RecaptchaEnterpriseBundle\Assessment\GatewayInterface;
 
 /**
  * The port is one method, so a fake beats a mock: the Verifier tests can assert on the request

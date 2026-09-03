@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\Validator;
+namespace Codein\RecaptchaEnterpriseBundle\Validator;
 
-use Artack\RecaptchaEnterpriseBundle\Verifier\Result;
-use Artack\RecaptchaEnterpriseBundle\Verifier\VerifierInterface;
+use Codein\RecaptchaEnterpriseBundle\Verifier\Result;
+use Codein\RecaptchaEnterpriseBundle\Verifier\VerifierInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;

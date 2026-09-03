@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\Tests\Assessment;
+namespace Codein\RecaptchaEnterpriseBundle\Tests\Assessment;
 
-use Artack\RecaptchaEnterpriseBundle\Assessment\Assessment;
-use Artack\RecaptchaEnterpriseBundle\Assessment\AssessmentRequest;
-use Artack\RecaptchaEnterpriseBundle\Assessment\Exception\AuthenticationException;
-use Artack\RecaptchaEnterpriseBundle\Assessment\Exception\InvalidRequestException;
-use Artack\RecaptchaEnterpriseBundle\Assessment\Exception\TransportException;
-use Artack\RecaptchaEnterpriseBundle\Assessment\HttpGateway;
-use Artack\RecaptchaEnterpriseBundle\Assessment\InvalidReason;
+use Codein\RecaptchaEnterpriseBundle\Assessment\Assessment;
+use Codein\RecaptchaEnterpriseBundle\Assessment\AssessmentRequest;
+use Codein\RecaptchaEnterpriseBundle\Assessment\Exception\AuthenticationException;
+use Codein\RecaptchaEnterpriseBundle\Assessment\Exception\InvalidRequestException;
+use Codein\RecaptchaEnterpriseBundle\Assessment\Exception\TransportException;
+use Codein\RecaptchaEnterpriseBundle\Assessment\HttpGateway;
+use Codein\RecaptchaEnterpriseBundle\Assessment\InvalidReason;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

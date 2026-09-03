@@ -9,7 +9,7 @@
          beStrictAboutOutputDuringTests="true"
 >
     <testsuites>
-        <testsuite name="artack/recaptcha-enterprise-bundle">
+        <testsuite name="codein/recaptcha-enterprise-bundle">
             <directory>tests</directory>
         </testsuite>
     </testsuites>

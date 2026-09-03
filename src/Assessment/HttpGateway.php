@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\Assessment;
+namespace Codein\RecaptchaEnterpriseBundle\Assessment;
 
-use Artack\RecaptchaEnterpriseBundle\Assessment\Exception\AuthenticationException;
-use Artack\RecaptchaEnterpriseBundle\Assessment\Exception\InvalidRequestException;
-use Artack\RecaptchaEnterpriseBundle\Assessment\Exception\TransportException;
+use Codein\RecaptchaEnterpriseBundle\Assessment\Exception\AuthenticationException;
+use Codein\RecaptchaEnterpriseBundle\Assessment\Exception\InvalidRequestException;
+use Codein\RecaptchaEnterpriseBundle\Assessment\Exception\TransportException;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface as HttpExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Throwable;

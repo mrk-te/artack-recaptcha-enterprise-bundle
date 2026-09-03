@@ -1,84 +1,87 @@
-artack/recaptcha-enterprise-bundle
-=================================
+codein/recaptcha-enterprise-bundle
+==================================
 
 > Symfony integration for Google reCAPTCHA Enterprise (Assessments API).
 
-[![Latest Release](https://img.shields.io/packagist/v/artack/recaptcha-enterprise-bundle.svg)](https://packagist.org/packages/artack/recaptcha-enterprise-bundle)
-[![MIT License](https://img.shields.io/packagist/l/artack/recaptcha-enterprise-bundle.svg)](http://opensource.org/licenses/MIT)
-[![Total Downloads](https://img.shields.io/packagist/dt/artack/recaptcha-enterprise-bundle.svg)](https://packagist.org/packages/artack/recaptcha-enterprise-bundle)
+[![Latest Release](https://img.shields.io/packagist/v/codein/recaptcha-enterprise-bundle.svg)](https://packagist.org/packages/codein/recaptcha-enterprise-bundle)
+[![MIT License](https://img.shields.io/packagist/l/codein/recaptcha-enterprise-bundle.svg)](http://opensource.org/licenses/MIT)
+[![Total Downloads](https://img.shields.io/packagist/dt/codein/recaptcha-enterprise-bundle.svg)](https://packagist.org/packages/codein/recaptcha-enterprise-bundle)
 
-Developed by [ARTACK WebLab GmbH](https://www.artack.ch) in Zurich, Switzerland.
+Based on [artack/recaptcha-enterprise-bundle](https://github.com/artack/recaptcha-enterprise-bundle) 0.2.0,
+forked and maintained by [Codéin](https://www.codein.fr). Originally developed by
+[ARTACK WebLab GmbH](https://www.artack.ch) in Zurich, Switzerland, and released under the MIT licence,
+which this fork keeps along with the original copyright notice.
 
-Features
---------
+What changed from artack/recaptcha-enterprise-bundle
+----------------------------------------------------
 
-- Provides the **RecaptchaEnterpriseType** form type, rendering either the invisible score challenge
-  or the "I'm not a robot" checkbox, and carrying the token in a field the constraint can actually see.
-- Ships a **RecaptchaEnterprise** validation constraint for attributes and PHP configuration, including configurable
-  score threshold and action names.
-- Automatically resolves the client IP, User-Agent and requested URI from Symfony's request stack and forwards
-  them to Google when available, so the risk analysis has more than a bare token to work with.
-- Registers the form theme automatically, so no manual Twig configuration is required.
-- Ships the **captcha failure finder** as an autowired service, `CaptchaFailure\FinderInterface`: type-hint it in a
-  controller and `has($form)` / `get($form)` say why the captcha was refused — the score, the reason Google gave, or
-  that Google could not be asked — instead of a walk through the form errors. See "Handling a failed captcha".
-- Separates deciding from calling: a `Verifier` holding the policy, and a gateway port with a single HTTP
-  implementation, so an unreachable API is never mistaken for an invalid token.
+- **PHP version reduced to 8.1**, down from 8.2.
+- **Symfony support starting with version 5.4**, alongside the 6.4 and 7.4 LTS lines and 8.x.
+- **Added support for the checkbox mode**, the "I'm not a robot" widget, beside the invisible score challenge.
+- **The challenge is chosen once for the whole application** through the `challenge` setting: a score key
+  and a checkbox key are different key types, and `site_key` is a single global value.
+- **Google's JavaScript resources are no longer loaded automatically** and must be added to the layout by hand,
+  so the application decides when — which is what makes GDPR consent manageable.
+- **Three interfaces are exposed as autowired services:**
+  - `Assessment\GatewayInterface` — the call to Google, depending solely on the Symfony HTTP client, no SDK.
+  - `Verifier\VerifierInterface` — verifying the response, outside the constraint if you need it.
+  - `CaptchaFailure\FinderInterface` — adding your own logic when a captcha is refused.
 
-Requirements
+See "Upgrading from artack/recaptcha-enterprise-bundle:0.2.0" for the full list of breaking changes.
+
+Installation
 ------------
+
+### Requirements
 
 | Requirement | Supported versions |
 |---|---|
 | PHP | 8.1, 8.2, 8.3, 8.4 |
 | Symfony | 5.4 LTS, 6.4 LTS, 7.4 LTS, 8.x |
 
-Every installable combination is covered by the CI matrix, together with a `--prefer-lowest` build that proves the
-declared minimums actually install and work. Symfony itself narrows the grid: 7.4 requires PHP 8.2 and 8.x requires
-PHP 8.4, so those pairs are not built on older runtimes.
-
-Symfony 5.4 is end of life upstream but supported here on purpose. Its components raise PHP deprecations that the bundle
-cannot fix, so the test suite does not fail on deprecations.
-
-Installation
-------------
-
-Install the bundle via [Composer](https://getcomposer.org):
+### Installing with the Flex recipe
 
 ```shell
-$ composer require artack/recaptcha-enterprise-bundle
+$ composer config extra.symfony.allow-contrib true
+$ composer require codein/recaptcha-enterprise-bundle
 ```
 
-A [Flex recipe](https://github.com/symfony/recipes-contrib/tree/main/artack/recaptcha-enterprise-bundle) registers
-the bundle in `config/bundles.php`, writes `config/packages/artack_recaptcha_enterprise.yaml` and adds the three
-environment variables to `.env`. Flex applies the highest recipe version not above the installed one, so the `0.1`
-recipe covers the whole `0.x` line. It cannot add the loader to your layout, which is the third step below.
+The first command is needed once per application: contributed recipes are disabled in the Symfony skeleton.
+The [recipe](https://github.com/symfony/recipes-contrib) then registers the bundle, writes
+`config/packages/codein_recaptcha_enterprise.yaml`, adds the environment variables to `.env`, and inserts
+the bundle's own asset tag into `templates/base.html.twig`. It never adds Google's tag, which depends on consent.
 
-> ⚠️ This bundle is being used in production, but hasn't reached version 1.0 yet. Therefore, there can be breaking
-> changes between minor versions. I'd recommend that you require the bundle only with the current minor version like
-> `composer require artack/recaptcha-enterprise-bundle:0.2.*`, and read "Upgrading from 0.2.0" before moving on.
+> ⚠️ **The application loads Google's `enterprise.js` itself.** With no loader there is no token, so the
+> constraint refuses every submission and the visitor is locked out of the form. Read "Adding the scripts to
+> your layout" before deploying.
 
 ### Installing without a recipe
 
-Flex registers bundles from a recipe manifest only — `"type": "symfony-bundle"` alone does **not** make it happen.
-So a fork, a renamed package or an install from a VCS repository gets no recipe, and the two steps it performs
-have to be done by hand:
+Flex enables the bundle by itself, but it writes no configuration when there is no recipe. Create
+`config/packages/codein_recaptcha_enterprise.yaml` as shown under "Configuration", and add the three
+environment variables it reads to your `.env`:
+
+```dotenv
+CODEIN_RECAPTCHA_ENTERPRISE_PROJECT_ID=
+CODEIN_RECAPTCHA_ENTERPRISE_SITE_KEY=
+CODEIN_RECAPTCHA_ENTERPRISE_API_KEY=
+```
+
+If the configuration key is rejected as unrecognised, the bundle is not registered — check `config/bundles.php`
+and add it by hand, which is what an install from a VCS repository of a package renamed locally may need:
 
 ```php
 // config/bundles.php
 return [
     // ...
-    Artack\RecaptchaEnterpriseBundle\ArtackRecaptchaEnterpriseBundle::class => ['all' => true],
+    Codein\RecaptchaEnterpriseBundle\CodeinRecaptchaEnterpriseBundle::class => ['all' => true],
 ];
 ```
 
-Then create `config/packages/artack_recaptcha_enterprise.yaml` as shown below. The symptom of forgetting the first
-step is that the configuration key is rejected as unrecognised, since an unregistered bundle has no extension.
-
 ### Adding the scripts to your layout
 
-The bundle ships the submission handling as an asset and **never places Google's script on a page — the
-application does**. Both tags are part of installing the bundle, not an optional extra: with no loader there is
+The bundle ships the submission handling as an asset and **never places Google's script on a page —
+the application does**. Both tags are part of installing the bundle, not an optional extra: with no loader there is
 no token, so the constraint refuses every submission as `MISSING` and the visitor is locked out of the form.
 
 Publish the asset, which Flex's `auto-scripts` already does on every `composer install`:
@@ -93,48 +96,48 @@ Expose the site key to Twig:
 # config/packages/twig.yaml
 twig:
     globals:
-        recaptcha_site_key: '%artack_recaptcha_enterprise.site_key%'
+        recaptcha_site_key: '%codein_recaptcha_enterprise.site_key%'
 ```
 
 Then add both scripts once per page, in your layout, the Google one only after the visitor has consented:
 
 ```twig
 {# score: the site key is bound to the loader at load time #}
-<script src="https://www.google.com/recaptcha/enterprise.js?render={{ site_key }}&hl=fr&onload=artackRecaptchaOnload"
+<script src="https://www.google.com/recaptcha/enterprise.js?render={{ site_key }}&hl=fr&onload=codeinRecaptchaOnload"
         async defer></script>
 
 {# checkbox: the widgets are rendered explicitly, one per field #}
-<script src="https://www.google.com/recaptcha/enterprise.js?render=explicit&hl=fr&onload=artackRecaptchaOnload"
+<script src="https://www.google.com/recaptcha/enterprise.js?render=explicit&hl=fr&onload=codeinRecaptchaOnload"
         async defer></script>
 
 {# both challenges: the bundle's submission handling, no consent needed #}
-<script src="{{ asset('bundles/artackrecaptchaenterprise/recaptcha-enterprise.js') }}" defer></script>
+<script src="{{ asset('bundles/codeinrecaptchaenterprise/recaptcha-enterprise.js') }}" defer></script>
 ```
 
 The bundle's own asset carries no personal data and may be loaded unconditionally; only the Google tag is subject
 to consent. The checkbox challenge uses `render=explicit` instead of the site key. See "Loading the scripts" for
-that variant, for the `hl=` language parameter, for the `artackRecaptchaOnload` readiness contract, and for what
+that variant, for the `hl=` language parameter, for the `codeinRecaptchaOnload` readiness contract, and for what
 an application must do while consent is absent.
 
 Configuration
 -------------
 
-Create `config/packages/artack_recaptcha_enterprise.yaml` with your Google project credentials:
+Create `config/packages/codein_recaptcha_enterprise.yaml` with your Google project credentials:
 
 ```yaml
-# config/packages/artack_recaptcha_enterprise.yaml
-artack_recaptcha_enterprise:
-    enabled: '%env(resolve:ARTACK_RECAPTCHA_ENTERPRISE_ENABLED)%' # defaults to true
-    site_key: '%env(resolve:ARTACK_RECAPTCHA_ENTERPRISE_SITE_KEY)%'
-    project_id: '%env(resolve:ARTACK_RECAPTCHA_ENTERPRISE_PROJECT_ID)%'
-    api_key: '%env(resolve:ARTACK_RECAPTCHA_ENTERPRISE_API_KEY)%'
+# config/packages/codein_recaptcha_enterprise.yaml
+codein_recaptcha_enterprise:
+    enabled: true # set to false to skip every assessment
+    site_key: '%env(CODEIN_RECAPTCHA_ENTERPRISE_SITE_KEY)%'
+    project_id: '%env(CODEIN_RECAPTCHA_ENTERPRISE_PROJECT_ID)%'
+    api_key: '%env(CODEIN_RECAPTCHA_ENTERPRISE_API_KEY)%'
     min_score: 0.5 # default score threshold used by the validator when none is provided
     challenge: score # score (default) or checkbox, see "Choosing the challenge"
     on_error: deny # deny (default) or allow, see "When Google cannot be reached"
-    http_client_service: artack_recaptcha_enterprise.client # see "Configuring the HTTP client"
+    http_client_service: codein_recaptcha_enterprise.client # see "Configuring the HTTP client"
 
 when@dev:
-    artack_recaptcha_enterprise:
+    codein_recaptcha_enterprise:
         enabled: false # disable reCAPTCHA in dev environments
 ```
 
@@ -148,13 +151,13 @@ challenge normally wants — see "Choosing the challenge".
 
 ### Configuring the HTTP client
 
-The bundle declares its own scoped client, `artack_recaptcha_enterprise.client`, and calls Google through it:
+The bundle declares its own scoped client, `codein_recaptcha_enterprise.client`, and calls Google through it:
 
 ```yaml
 framework:
     http_client:
         scoped_clients:
-            artack_recaptcha_enterprise.client:
+            codein_recaptcha_enterprise.client:
                 base_uri: 'https://recaptchaenterprise.googleapis.com'
                 timeout: 2.0
                 max_duration: 5.0
@@ -170,7 +173,7 @@ configuration wins over what a bundle prepends. Every `scoped_clients` option ap
 framework:
     http_client:
         scoped_clients:
-            artack_recaptcha_enterprise.client:
+            codein_recaptcha_enterprise.client:
                 base_uri: 'https://recaptchaenterprise.googleapis.com'
                 timeout: 5.0
                 proxy: '%env(HTTPS_PROXY)%'
@@ -186,7 +189,7 @@ Use `http_client_service` to point the gateway at an entirely different client i
 client, a decorated one, or plain `http_client`:
 
 ```yaml
-artack_recaptcha_enterprise:
+codein_recaptcha_enterprise:
     http_client_service: my_app.google_client
 ```
 
@@ -209,9 +212,9 @@ the verdict is the validity of the token: the visitor solved the challenge Googl
 top of that refuses someone who passed it, and the widget offers no second attempt, so set `min_score: 0`:
 
 ```yaml
-artack_recaptcha_enterprise:
+codein_recaptcha_enterprise:
     challenge: checkbox
-    site_key: '%env(ARTACK_RECAPTCHA_ENTERPRISE_SITE_KEY)%' # must be a checkbox key
+    site_key: '%env(CODEIN_RECAPTCHA_ENTERPRISE_SITE_KEY)%' # must be a checkbox key
     min_score: 0
 ```
 
@@ -223,73 +226,14 @@ field instead, so the validator, the verifier and the constraint stay unaware of
 Checkbox tokens expire after about two minutes, and the field is cleared when that happens, so a stale token is
 never submitted.
 
-### When Google cannot be reached
-
-A network failure, a rate limit or a Google outage says nothing about the token, so the bundle treats it as its own
-outcome instead of reporting a valid token as invalid. `on_error` decides what happens then:
-
-| Value | Behaviour |
-|---|---|
-| `deny` (default) | The submission is refused. Safe, but a Google outage blocks every form. |
-| `allow` | The submission passes without an assessment. Keeps forms working, and lets bots through while the outage lasts. |
-
-Either way the failure is logged at error level, and the violation raised by `deny` carries
-the `RecaptchaEnterprise::UNAVAILABLE_ERROR` code so it can be told apart from a genuinely refused token.
-
-### What the bundle sends to Google
-
-Beyond the token and the site key, the assessment event carries whatever the current request can supply.
-All of it is optional to Google and omitted when empty:
-
-| Field | Source | Why it matters |
-|---|---|---|
-| `expectedAction` | the `action_name` form option | Rejects a token minted for another action |
-| `userIpAddress` | `Request::getClientIp()` | Feeds IP reputation into the risk analysis |
-| `userAgent` | the `User-Agent` header | Feeds device signals into the risk analysis |
-| `requestedUri` | `Request::getUri()` | Tells Google which page triggered the assessment |
-
-> ⚠️ **Configure `framework.trusted_proxies`.** Behind a reverse proxy, a load balancer or a Docker network,
-> `getClientIp()` returns the proxy's address, so Google scores every visitor from a single internal IP and the
-> risk analysis degrades as traffic grows. A private address such as `10.x`, `172.16-31.x` or `192.168.x` in
-> `event.userIpAddress` is the symptom.
-
-`requestedUri` is the full URI including the query string. If your form pages carry anything sensitive there,
-that value reaches Google.
-
-### Verification result
-
-`VerifierInterface` can be used outside the validator. It is stateless: the verdict is the returned `Result`, never
-something read back from the service afterwards.
-
-```php
-use Artack\RecaptchaEnterpriseBundle\Verifier\VerifierInterface;
-
-public function __construct(private readonly VerifierInterface $verifier) {}
-
-// ...
-$result = $this->verifier->verify($token, 'contact');
-
-$result->success;              // whether the token may be accepted, score aside
-$result->valid;                // what Google said about the token itself
-$result->score;                // null when the assessment carried no risk analysis
-$result->invalidReason;        // an InvalidReason enum case, or null
-$result->getInvalidReasonName(); // e.g. "EXPIRED"
-$result->error;                // set only when no assessment could be obtained at all
-$result->raw;                  // the untouched payload
-```
-
-Inside a validator, the same `Result` is attached to the violation as its cause, so
-`$violation->getCause()` reaches it without calling the verifier again. From a controller, reach for the
-finder described in "Handling a failed captcha" rather than unwrapping the form errors by hand.
-
 Usage
 -----
 
 Render the token field in a Symfony form:
 
 ```php
-use Artack\RecaptchaEnterpriseBundle\Form\RecaptchaEnterpriseType;
-use Artack\RecaptchaEnterpriseBundle\Validator\RecaptchaEnterprise;
+use Codein\RecaptchaEnterpriseBundle\Form\RecaptchaEnterpriseType;
+use Codein\RecaptchaEnterpriseBundle\Validator\RecaptchaEnterprise;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
@@ -326,16 +270,85 @@ final class ContactType extends AbstractType
 `challenge` is **not** a form option. Google supports one `enterprise.js` load per page and its `render=`
 parameter takes one value, so the challenge is a bundle setting and every field on a page shares it.
 
-The Twig theme is prepended automatically. It emits no JavaScript: the field carries `data-artack-recaptcha`
+The Twig theme is prepended automatically. It emits no JavaScript: the field carries `data-codein-recaptcha`
 attributes, and the shipped asset acts on them. In the `score` challenge it calls `grecaptcha.enterprise.execute`
-on submit, fills the hidden field and resubmits with `requestSubmit()`, which preserves the clicked button and
-runs the other submit listeners. In the `checkbox` challenge the token is written into the hidden field by the
-widget callback as soon as the visitor solves it.
+on submit, fills the hidden field and resubmits with `requestSubmit()`, which preserves the clicked button
+and runs the other submit listeners. In the `checkbox` challenge the token is written into the hidden field by
+the widget callback as soon as the visitor solves it.
 
 To restyle one challenge without touching the other, override the `recaptcha_enterprise_score_widget`
 or `recaptcha_enterprise_checkbox_widget` block rather than `recaptcha_enterprise_widget`, which only
-dispatches between them. Keep the `data-artack-recaptcha` attributes on the input and, for checkbox, the
-`data-artack-recaptcha-container` div: they are how the asset finds the field.
+dispatches between them. Keep the `data-codein-recaptcha` attributes on the input and, for checkbox,
+the `data-codein-recaptcha-container` div: they are how the asset finds the field.
+
+### Loading the scripts
+
+**The bundle never loads Google's script — the application does.** The bundle cannot know whether the visitor
+consented to Google, and a script placed on the page without consent is the application's liability, so this is
+deliberately not configurable: a flag would still ship a default that loads it.
+
+"Adding the scripts to your layout" gives the minimum; this is the full contract. Add the loader once per page,
+after consent, with `onload=codeinRecaptchaOnload`, alongside the bundle's own asset:
+
+```twig
+{# score: the site key is bound to the loader at load time #}
+<script src="https://www.google.com/recaptcha/enterprise.js?render={{ site_key }}&hl=fr&onload=codeinRecaptchaOnload"
+        async defer></script>
+
+{# checkbox: the widgets are rendered explicitly, one per field #}
+<script src="https://www.google.com/recaptcha/enterprise.js?render=explicit&hl=fr&onload=codeinRecaptchaOnload"
+        async defer></script>
+
+{# both challenges: the bundle's submission handling, no consent needed #}
+<script src="{{ asset('bundles/codeinrecaptchaenterprise/recaptcha-enterprise.js') }}" defer></script>
+```
+
+The two tags are not interchangeable: the `render=` value follows the `challenge` setting, and a page must never
+carry both — which the single `site_key` already prevents. `hl=` is yours to set, and omitting it lets Google
+detect the language from the browser.
+
+`codeinRecaptchaOnload` is public API. It is the only supported readiness signal: `grecaptcha.enterprise.ready()`
+does not queue callbacks registered before the library exists, so the asset queues everything itself and drains
+the queue when the callback fires. Nothing depends on the two scripts landing in a given order — a library that is
+already there is detected directly, and a callback that fired before the asset ran is caught by a short poll.
+
+Any number of fields of the configured challenge can then appear on one page: several score fields share
+the single bound key, several checkbox fields each render into their own container. A visitor who submits before
+the library has landed is safe — the submission is held and replayed, rather than throwing and leaving the form
+silently dead.
+
+The asset also exposes `window.codeinRecaptcha`:
+
+| Member | Purpose |
+|---|---|
+| `refresh(root)` | Wire up fields added after load — Turbo, Stimulus, an AJAX-loaded modal. Idempotent, so calling it on the whole document again is safe. |
+| `whenReady(callback)` | Run a callback once `grecaptcha.enterprise` exists, for application code of your own. |
+
+```js
+// after injecting a form into the page
+window.codeinRecaptcha.refresh(modal);
+```
+
+> ⚠️ **GDPR: with no loader there is no token**, so the constraint refuses every submission and the visitor is
+> locked out of the form. `on_error: allow` does not rescue this — it covers an unreachable Google, while
+> a missing token is a legitimate `MISSING` refusal. An application that omits the script until consent is given
+> must also skip the constraint until then, with a validation group or by not adding the field at all.
+
+### When the token cannot be fetched
+
+If `grecaptcha.enterprise.execute()` rejects, or the loader never arrives within ten seconds — blocked, offline,
+or held back by a consent manager — the bundle dispatches a cancelable `codein-recaptcha:error` event on the form
+and then submits with an empty token, which the server refuses as `MISSING`. Cancel the event to keep
+the submission blocked and handle it yourself:
+
+```js
+form.addEventListener('codein-recaptcha:error', function (event) {
+    event.preventDefault(); // the form stays unsubmitted; show your own message
+});
+```
+
+Submitting an empty token is deliberate: it is a refusal the application already reports through the constraint,
+whereas a form left in a prevented state gives the visitor nothing at all.
 
 ### Showing the error
 
@@ -349,18 +362,18 @@ Render the field with `form_row()`, or let `form_widget(form)` render the whole 
 Calling `form_widget(form.recaptchaToken)` on its own renders the field **without** the error, as with any
 Symfony field. The field inherits from `HiddenType`, whose `hidden_row` block renders the widget alone — so
 without the bundle's own row block the visitor would be refused with no message at all. Errors do not reach
-`form_errors(form)` either: `HiddenType` passes them to the parent, and the type sets `error_bubbling` back to
-`false` so the message stays beside the widget.
+`form_errors(form)` either: `HiddenType` passes them to the parent, and the type sets `error_bubbling` back
+to `false` so the message stays beside the widget.
 
 Set `error_bubbling: true` on the field if you would rather collect the message in the form-level summary.
 
 ### Handling a failed captcha
 
-The message the visitor sees is deliberately vague. Everything the application needs to react — the score, the
-reason Google gave, whether Google answered at all — is attached to the violation, and the finder reads it back:
+The message the visitor sees is deliberately vague. Everything the application needs to react — the score,
+the reason Google gave, whether Google answered at all — is attached to the violation, and the finder reads it back:
 
 ```php
-use Artack\RecaptchaEnterpriseBundle\CaptchaFailure\FinderInterface;
+use Codein\RecaptchaEnterpriseBundle\CaptchaFailure\FinderInterface;
 
 public function __construct(private readonly FinderInterface $captchaFailures) {}
 
@@ -384,8 +397,8 @@ A failure is exactly one of three:
 | `isUnavailable()` | Google could not be asked at all | `null` | `null` |
 
 `isUnavailable()` never fires under `on_error: allow`, which refuses nothing. The raw assessment stays available
-as `$failure->result` or `$failure->getResult()`, and the violation as `$failure->violation` or
-`$failure->getViolation()`.
+as `$failure->result` or `$failure->getResult()`, and the violation as `$failure->violation`
+or `$failure->getViolation()`.
 
 The finder never looks at the challenge — it reads what the validator recorded, and that validator has a single
 code path — but the two challenges do not fail the same way, so what is worth handling differs.
@@ -419,6 +432,11 @@ result     success = true, valid = true, action = "contact", score = 0.1,
 `$failure->result->raw` holds Google's untouched answer, so the risk analysis `reasons` are there for a log
 line even though the bundle does not model them.
 
+A low score is also where the hybrid pattern belongs. Rather than refusing outright, an application can step
+the visitor up to a check of its own — an e-mail with a validation link, a moderation queue, a delayed publication.
+Call `VerifierInterface::verify()` yourself for that, and do not also attach the constraint: the second
+assessment of the same token comes back as `DUPE`.
+
 #### With the checkbox challenge
 
 With `min_score: 0` the score is never held to a threshold, so `isLowScore()` never fires, and a refused token
@@ -436,8 +454,8 @@ if ($failure->isInvalidToken()) {
 }
 ```
 
-Both reasons produce the same failure shape, but not the same story: `MISSING` never reached Google at all — the
-field was empty, so `raw` is empty too — whereas `EXPIRED` comes back from a real assessment:
+Both reasons produce the same failure shape, but not the same story: `MISSING` never reached Google at all —
+the field was empty, so `raw` is empty too — whereas `EXPIRED` comes back from a real assessment:
 
 ```text
 violation  code = INVALID_TOKEN_ERROR, parameters {{ reason }} = "EXPIRED", {{ score }} = "null"
@@ -447,77 +465,71 @@ result     success = false, valid = false, action = null, score = null,
 
 One trap: `isLowScore()` is unreachable here only because `min_score` is `0`. Leave the default `0.5` on
 a checkbox key and a visitor who ticked the box is still refused whenever Google scores the interaction
-below the threshold — with no second attempt to offer, since the challenge was already passed. Raise the
-threshold above `0` only if the application answers a low score with something other than a refusal.
+below the threshold — with no second attempt to offer, since the challenge was already passed. Raise
+the threshold above `0` only if the application answers a low score with something other than a refusal.
 
-### Loading the scripts
+### Verification result
 
-**The bundle never loads Google's script — the application does.** The bundle cannot know whether the visitor
-consented to Google, and a script placed on the page without consent is the application's liability, so this is
-deliberately not configurable: a flag would still ship a default that loads it.
+`VerifierInterface` can be used outside the validator. It is stateless: the verdict is the returned `Result`, never
+something read back from the service afterwards.
 
-"Adding the scripts to your layout" gives the minimum; this is the full contract. Add the loader once per page,
-after consent, with `onload=artackRecaptchaOnload`, alongside the bundle's own asset:
+```php
+use Codein\RecaptchaEnterpriseBundle\Verifier\VerifierInterface;
 
-```twig
-{# score: the site key is bound to the loader at load time #}
-<script src="https://www.google.com/recaptcha/enterprise.js?render={{ site_key }}&hl=fr&onload=artackRecaptchaOnload"
-        async defer></script>
+public function __construct(private readonly VerifierInterface $verifier) {}
 
-{# checkbox: the widgets are rendered explicitly, one per field #}
-<script src="https://www.google.com/recaptcha/enterprise.js?render=explicit&hl=fr&onload=artackRecaptchaOnload"
-        async defer></script>
+// ...
+$result = $this->verifier->verify($token, 'contact');
 
-{# both challenges: the bundle's submission handling, no consent needed #}
-<script src="{{ asset('bundles/artackrecaptchaenterprise/recaptcha-enterprise.js') }}" defer></script>
+$result->success;              // whether the token may be accepted, score aside
+$result->valid;                // what Google said about the token itself
+$result->score;                // null when the assessment carried no risk analysis
+$result->invalidReason;        // an InvalidReason enum case, or null
+$result->getInvalidReasonName(); // e.g. "EXPIRED"
+$result->error;                // set only when no assessment could be obtained at all
+$result->raw;                  // the untouched payload
 ```
 
-The two tags are not interchangeable: the `render=` value follows the `challenge` setting, and a page must never
-carry both — which the single `site_key` already prevents. `hl=` is yours to set, and omitting it lets Google
-detect the language from the browser.
+Inside a validator, the same `Result` is attached to the violation as its cause, so
+`$violation->getCause()` reaches it without calling the verifier again. From a controller, reach for
+the finder described in "Handling a failed captcha" rather than unwrapping the form errors by hand.
 
-`artackRecaptchaOnload` is public API. It is the only supported readiness signal: `grecaptcha.enterprise.ready()`
-does not queue callbacks registered before the library exists, so the asset queues everything itself and drains
-the queue when the callback fires. Nothing depends on the two scripts landing in a given order — a library that is
-already there is detected directly, and a callback that fired before the asset ran is caught by a short poll.
+Two shapes are easy to misread. An empty token never reaches Google: `verify('')` answers `MISSING` without
+an HTTP call. And `success === true` together with a non-null `error` is an accepted outage under
+`on_error: allow` — there is no score to judge, so treat it as a case to step up rather than as a pass.
 
-Any number of fields of the configured challenge can then appear on one page: several score fields share the
-single bound key, several checkbox fields each render into their own container. A visitor who submits before the
-library has landed is safe — the submission is held and replayed, rather than throwing and leaving the form
-silently dead.
+### When Google cannot be reached
 
-The asset also exposes `window.artackRecaptcha`:
+A network failure, a rate limit or a Google outage says nothing about the token, so the bundle treats it as its own
+outcome instead of reporting a valid token as invalid. `on_error` decides what happens then:
 
-| Member | Purpose |
+| Value | Behaviour |
 |---|---|
-| `refresh(root)` | Wire up fields added after load — Turbo, Stimulus, an AJAX-loaded modal. Idempotent, so calling it on the whole document again is safe. |
-| `whenReady(callback)` | Run a callback once `grecaptcha.enterprise` exists, for application code of your own. |
+| `deny` (default) | The submission is refused. Safe, but a Google outage blocks every form. |
+| `allow` | The submission passes without an assessment. Keeps forms working, and lets bots through while the outage lasts. |
 
-```js
-// after injecting a form into the page
-window.artackRecaptcha.refresh(modal);
-```
+Either way the failure is logged at error level, and the violation raised by `deny` carries
+the `RecaptchaEnterprise::UNAVAILABLE_ERROR` code so it can be told apart from a genuinely refused token.
 
-> ⚠️ **GDPR: with no loader there is no token**, so the constraint refuses every submission and the visitor is
-> locked out of the form. `on_error: allow` does not rescue this — it covers an unreachable Google, while a
-> missing token is a legitimate `MISSING` refusal. An application that omits the script until consent is given
-> must also skip the constraint until then, with a validation group or by not adding the field at all.
+### What the bundle sends to Google
 
-### When the token cannot be fetched
+Beyond the token and the site key, the assessment event carries whatever the current request can supply.
+All of it is optional to Google and omitted when empty:
 
-If `grecaptcha.enterprise.execute()` rejects, or the loader never arrives within ten seconds — blocked, offline,
-or held back by a consent manager — the bundle dispatches a cancelable `artack-recaptcha:error` event on the form
-and then submits with an empty token, which the server refuses as `MISSING`. Cancel the event to keep
-the submission blocked and handle it yourself:
+| Field | Source | Why it matters |
+|---|---|---|
+| `expectedAction` | the `action_name` form option | Rejects a token minted for another action |
+| `userIpAddress` | `Request::getClientIp()` | Feeds IP reputation into the risk analysis |
+| `userAgent` | the `User-Agent` header | Feeds device signals into the risk analysis |
+| `requestedUri` | `Request::getUri()` | Tells Google which page triggered the assessment |
 
-```js
-form.addEventListener('artack-recaptcha:error', function (event) {
-    event.preventDefault(); // the form stays unsubmitted; show your own message
-});
-```
+> ⚠️ **Configure `framework.trusted_proxies`.** Behind a reverse proxy, a load balancer or a Docker network,
+> `getClientIp()` returns the proxy's address, so Google scores every visitor from a single internal IP
+> and the risk analysis degrades as traffic grows. A private address such as `10.x`, `172.16-31.x` or `192.168.x` in
+> `event.userIpAddress` is the symptom.
 
-Submitting an empty token is deliberate: it is a refusal the application already reports through the constraint,
-whereas a form left in a prevented state gives the visitor nothing at all.
+`requestedUri` is the full URI including the query string. If your form pages carry anything sensitive there,
+that value reaches Google.
 
 Architecture
 ------------
@@ -546,8 +558,8 @@ The gateway throws, rather than returning a failed assessment, whenever Google d
 All three implement `AssessmentExceptionInterface`. `Verifier` catches it, so no exception ever escapes into form
 validation.
 
-The split holds on the way back too: the `CaptchaFailure\Finder` only reads what the validator recorded on the
-violation. It decides nothing, which is why it needs no configuration and no dependencies.
+The split holds on the way back too: the `CaptchaFailure\Finder` only reads what the validator recorded on
+the violation. It decides nothing, which is why it needs no configuration and no dependencies.
 
 Development
 -----------
@@ -574,114 +586,58 @@ $ make test PHP_VERSION=8.4
 `composer.lock` is not committed. This is a library, so consumers resolve their own dependency versions and a committed
 lock file would only mislead the matrix build.
 
+Issues and pull requests are welcome on
+[Codein-Labs/recaptcha-enterprise-bundle](https://github.com/Codein-Labs/recaptcha-enterprise-bundle).
+
 Upgrading from artack/recaptcha-enterprise-bundle:0.2.0
---------------------
+------------------------------------------------------
 
-What changed : 
+Start with the rename. Every identifier carrying the old vendor changed, and nothing else in this table has any
+behaviour attached to it:
 
-- **New features.** The `checkbox` challenge sits beside the invisible `score` one. It is an application wide
-  choice, not a form option: `site_key` is a single global value and the two challenges need different key types.
-  The captcha failure finder, `CaptchaFailure\FinderInterface`, is an autowired service a controller type-hints to
-  ask why a captcha was refused, see "Handling a failed captcha".
-- **Requirements.** Symfony `5.4`, `6.4` and `7.4` are supported alongside `8.x`; `7.0` to `7.3` are not.
-  The PHP floor drops to `^8.1`, and `symfony/http-foundation` became an explicit requirement.
-- **Configuration.** Every existing key keeps its name and meaning; `challenge`, `on_error` and
-  `http_client_service` are new and optional. The `locale` and `script_csp_nonce` form options are removed,
-  `theme` and `size` are new.
-- **Frontend.** The bundle ships the submission handling as an asset and no longer emits any inline JavaScript,
-  but it never loads Google's `enterprise.js`: the application adds that tag itself, once it has consent.
-- **Backend.** Talking to the API moved out of `Verifier` into a `GatewayInterface`: the gateway translates,
-  the verifier decides.
-- **API.** `Artack\RecaptchaEnterpriseBundle\Service\` is gone, `Verifier` and `Result` changed shape, and
-  `getLatestResult()` is removed. Code going through the container or `VerifierInterface::verify()` is unaffected.
+| What | Old | New |
+|---|---|---|
+| Composer package | `artack/recaptcha-enterprise-bundle` | `codein/recaptcha-enterprise-bundle` |
+| PHP namespace | `Artack\RecaptchaEnterpriseBundle\` | `Codein\RecaptchaEnterpriseBundle\` |
+| Bundle class | `ArtackRecaptchaEnterpriseBundle` | `CodeinRecaptchaEnterpriseBundle` |
+| Configuration key | `artack_recaptcha_enterprise` | `codein_recaptcha_enterprise` |
+| Configuration file | `config/packages/artack_recaptcha_enterprise.yaml` | `config/packages/codein_recaptcha_enterprise.yaml` |
+| Environment variables | `ARTACK_RECAPTCHA_ENTERPRISE_*` | `CODEIN_RECAPTCHA_ENTERPRISE_*` |
+| Published asset | `bundles/artackrecaptchaenterprise/…` | `bundles/codeinrecaptchaenterprise/…` |
+| Readiness callback | `artackRecaptchaOnload` | `codeinRecaptchaOnload` |
+| JavaScript global | `window.artackRecaptcha` | `window.codeinRecaptcha` |
+| DOM attributes | `data-artack-recaptcha*` | `data-codein-recaptcha*` |
+| Failure event | `artack-recaptcha:error` | `codein-recaptcha:error` |
+| Twig theme namespace | `@ArtackRecaptchaEnterprise` | `@CodeinRecaptchaEnterprise` |
 
-### Behaviour
+Then the changes a rename does not cover. "What changed from artack/recaptcha-enterprise-bundle" explains why
+each of these moved; this is the checklist:
 
-- **A re-rendered form no longer carries its token back.** The hidden field used to be re-rendered with
-  the submitted value, and Google refuses a replayed token with `DUPE` — so any validation failure elsewhere
-  on the form locked the visitor out for good. The field now always renders empty.
-- **The assessment call goes through a scoped client**, `artack_recaptcha_enterprise.client`, which the bundle
-  prepends onto `framework.http_client` with a two second timeout and a five second `max_duration`. The call
-  previously inherited `default_socket_timeout`, so an unresponsive Google held the worker instead of reaching
-  the `on_error` policy. Redeclare that key to change the timeouts or anything else about the transport.
-- **The bundle no longer loads `enterprise.js`.** It cannot know whether the visitor consented to Google, so the
-  application adds the loader itself, with `onload=artackRecaptchaOnload`, and decides when. Without it there is
-  no token and every submission is refused as `MISSING`. This also fixes the two score fields on one page that
-  used to produce two `enterprise.js` tags, which Google does not support. See "Loading the scripts".
-- **The theme emits no JavaScript.** The submission handling ships as
-  `public/bundles/artackrecaptchaenterprise/recaptcha-enterprise.js`, installed by `assets:install` and loaded by
-  the application, and the field carries `data-artack-recaptcha` attributes the asset acts on. An application
-  that overrode a widget block to change the markup must keep those attributes; one that overrode it to change
-  the behaviour should now replace or wrap the asset.
-- **The `script_csp_nonce` form option is removed.** It existed only to let the theme's inline `<script>` tags
-  pass a CSP, and there are none left. The bundle's asset is an external file, covered by `script-src 'self'`,
-  and the application nonces its own tags if its policy needs it.
-- **The score check now fails closed.** An assessment carrying no risk analysis used to pass the threshold
-  silently; it is now refused. Set `min_score: 0` to keep the old behaviour, which is also what checkbox keys
-  without score based protection need.
-- **An unreachable Google is no longer reported as an invalid token.** It used to surface as a failed assessment;
-  it is now its own outcome, governed by `on_error` and defaulting to `deny` — the same refusal as before, but
-  distinguishable and logged.
-- **The violation is now rendered.** The field inherits from `HiddenType`, so `form_row()` fell through
-  to `hidden_row`, which emits the widget alone — the message was raised and silently dropped. The theme now
-  defines `recaptcha_enterprise_row`. If you worked around this with your own row block, drop it.
-- **The violation no longer bubbles to the form.** `HiddenType`, which the field inherits from, passes its
-  errors to the parent, so the message landed in `form_errors(form)` and never beside the widget — where a
-  refused checkbox has to say "tick it again". The type now sets `error_bubbling` to `false`. Set it back to
-  `true` on the field to collect the message in the form-level summary as before.
-- **The default message is now `The captcha did not validate.`**, previously
-  `You may be sending automated requests.` Pass `message:` to the constraint to keep the old wording.
-- **Violations now carry context**: the `{{ reason }}` and `{{ score }}` parameters, the `Result` as the violation
-  cause, and one of `RecaptchaEnterprise::INVALID_TOKEN_ERROR`, `LOW_SCORE_ERROR` or `UNAVAILABLE_ERROR`
-  as the code. Custom messages using those placeholders keep working; nothing is required to keep the plain message.
+- **Add the script tags to your layout.** The bundle no longer loads `enterprise.js`, and it no longer emits any
+  inline JavaScript. Without both tags every submission is refused as `MISSING`. See "Adding the scripts to your
+  layout". This is the one step that cannot be skipped.
+- **Run `assets:install`.** The submission handling is a published asset now.
+- **Drop any wiring around `Artack\RecaptchaEnterpriseBundle\Service\`.** `IpResolver`, `IpResolverInterface`,
+  `UserAgentResolver` and `UserAgentResolverInterface` are gone; the verifier reads the request stack directly.
+- **Replace `VerifierInterface::getLatestResult()`** with the `Result` that `verify()` returns, or with
+  `$violation->getCause()` inside a validator.
+- **Rebuild any hand-constructed `Verifier`.** It takes a `GatewayInterface` instead of the project id, site key,
+  API key and the two resolvers. Code going through the container is unaffected.
+- **Rebuild any hand-constructed `Result`.** `$raw` moved in the constructor and `$invalidReason`, `$error`
+  and `getInvalidReasonName()` were added; `$invalidReason` is an `InvalidReason` enum case. Use named arguments.
+- **Rename `InvalidReason::fromName()` to `fromApiValue()`**, which is what it always did.
+- **Remove the `locale`, `script_csp_nonce` and per-field `challenge` form options.** `hl=` now goes on your own
+  script tag, there is no inline script left to nonce, and `challenge` is a bundle setting.
+- **Drop any custom row block** you added to make the violation appear; the theme defines
+  `recaptcha_enterprise_row` itself. Set `error_bubbling: true` on the field if you relied on the message
+  reaching `form_errors(form)`.
+- **Review `min_score`.** The score check fails closed now: an assessment with no risk analysis is refused
+  rather than passed. `min_score: 0` restores the old behaviour.
+- **Pass `message:` to the constraint** to keep the old default wording, `You may be sending automated
+  requests.`
 
-### API
-
-- **`Artack\RecaptchaEnterpriseBundle\Service\` is removed** — `IpResolver`, `IpResolverInterface`,
-  `UserAgentResolver` and `UserAgentResolverInterface`. `Verifier` reads the client IP and User-Agent
-  from the request stack directly. Applications that decorated or replaced those services must drop that wiring.
-- **`Verifier` takes a `GatewayInterface`** instead of the project id, site key, API key and the two resolvers.
-  Code relying on the container or on `VerifierInterface` is unaffected; code instantiating `Verifier` by hand
-  must build a `HttpGateway` first.
-- **`Result` changed shape.** `$success`, `$valid`, `$action`, `$score` and `$raw` are unchanged, but `$raw` moved
-  in the constructor and `$invalidReason`, `$error` and `getInvalidReasonName()` were added. Build one with named
-  arguments. `$invalidReason` is an `InvalidReason` enum case, not a string or an int.
-- **`VerifierInterface::getLatestResult()` is removed.** The verifier is a shared service, so holding the last
-  result leaked it across requests in a long-running worker and was ambiguous once two fields were validated in
-  one request. Use the `Result` returned by `verify()`, or `$violation->getCause()` inside a validator.
-- **`InvalidReason::fromName()` is now `fromApiValue()`**, which is what it always did: it matches on the value
-  the API sent, not on the PHP case name.
-- **The `challenge` and `locale` form options are removed.** `challenge` is a bundle setting, which it already
-  was; a per-field override never worked, since it kept the single global `site_key` and so sent a key of the
-  wrong type. `locale` is gone entirely: it only ever produced the loader's `hl=`, which the application now
-  writes on its own script tag.
-- **`RecaptchaEnterpriseType` takes a third constructor argument**, the challenge. Only code instantiating the
-  type by hand is affected.
-
-### Features
-
-- **`requestedUri` is now sent** with the assessment, taken from `Request::getUri()`. It is an optional input
-  to the risk analysis; see "What the bundle sends to Google" if the query string is sensitive on your pages.
-- The `checkbox` challenge is new. Nothing changes for existing applications: `challenge` defaults to `score`,
-  which is the behaviour 0.2.0 had.
-- A failed or timed-out token fetch now dispatches a cancelable `artack-recaptcha:error` event on the form
-  instead of leaving the submission blocked with no message.
-- The checkbox container's class is `recaptcha-enterprise__widget`. It was `g-recaptcha-enterprise`, which read
-  as a Google-owned hook.
-- `CaptchaFailure\FinderInterface` is new, autowired and aliased to the
-  `artack_recaptcha_enterprise.captcha_failure_finder` service. Type-hint it in a controller: `has($form)` answers
-  whether the captcha is what failed, `get($form)` returns the `Failure` — the violation and the assessment side by
-  side, with `isInvalidToken()`, `isLowScore()` and `isUnavailable()` over them — and throws `NoFailureException`
-  rather than handing back a null. It replaces the error walk an application had to write itself, and reads the same
-  regardless of which challenge is configured. Nothing to change when upgrading.
-
-### Requirements
-
-- Symfony `5.4`, `6.4` and `7.4` are now supported alongside `8.x`; `7.0` to `7.3` are not, the supported 7.x line
-  is the LTS. The PHP floor drops from `^8.2` to `^8.1`; Symfony 7.4 and 8.x still need PHP 8.2 and 8.4 respectively,
-  so an 8.1 runtime is limited to the 5.4 and 6.4 lines.
-- `symfony/http-foundation` is now an explicit requirement. It was already installed in practice, through
-  `symfony/framework-bundle`.
+Nothing else in an existing integration needs to change. `RecaptchaEnterpriseType`, the `RecaptchaEnterprise`
+constraint and `VerifierInterface::verify()` keep their names and their signatures.
 
 License
 -------

@@ -2,7 +2,7 @@
     The theme emits no JavaScript at all. Every field is described by data attributes, and the
     behaviour lives in the shipped asset, which the application loads once:
 
-        <script src="{{ asset('bundles/artackrecaptchaenterprise/recaptcha-enterprise.js') }}" defer></script>
+        <script src="{{ asset('bundles/codeinrecaptchaenterprise/recaptcha-enterprise.js') }}" defer></script>
 
     Two challenges, two blocks, so an application can override one without touching the other. They
     are not interchangeable: each needs its own kind of site key in the Google console.
@@ -34,11 +34,11 @@
         leaves an inert hidden field the asset ignores. -#}
     {%- if form.vars.enabled -%}
         {%- set attr = attr|merge({
-            'data-artack-recaptcha': form.vars.challenge,
-            'data-artack-recaptcha-sitekey': form.vars.site_key,
+            'data-codein-recaptcha': form.vars.challenge,
+            'data-codein-recaptcha-sitekey': form.vars.site_key,
         }) -%}
         {%- if form.vars.action_name -%}
-            {%- set attr = attr|merge({'data-artack-recaptcha-action': form.vars.action_name}) -%}
+            {%- set attr = attr|merge({'data-codein-recaptcha-action': form.vars.action_name}) -%}
         {%- endif -%}
     {%- endif -%}
     {{ block('form_widget_simple') }}
@@ -57,20 +57,20 @@
         leaves an inert hidden field the asset ignores. -#}
     {%- if form.vars.enabled -%}
         {%- set attr = attr|merge({
-            'data-artack-recaptcha': form.vars.challenge,
-            'data-artack-recaptcha-sitekey': form.vars.site_key,
+            'data-codein-recaptcha': form.vars.challenge,
+            'data-codein-recaptcha-sitekey': form.vars.site_key,
         }) -%}
         {%- if form.vars.action_name -%}
-            {%- set attr = attr|merge({'data-artack-recaptcha-action': form.vars.action_name}) -%}
+            {%- set attr = attr|merge({'data-codein-recaptcha-action': form.vars.action_name}) -%}
         {%- endif -%}
     {%- endif -%}
     {{ block('form_widget_simple') }}
 
     {%- if form.vars.enabled %}
         <div class="recaptcha-enterprise__widget"
-             data-artack-recaptcha-container="{{ form.vars.id }}"
-             data-artack-recaptcha-theme="{{ form.vars.theme }}"
-             data-artack-recaptcha-size="{{ form.vars.size }}"></div>
+             data-codein-recaptcha-container="{{ form.vars.id }}"
+             data-codein-recaptcha-theme="{{ form.vars.theme }}"
+             data-codein-recaptcha-size="{{ form.vars.size }}"></div>
         <noscript>{{ 'This form requires JavaScript.'|trans({}, 'validators') }}</noscript>
     {%- endif %}
 {% endblock %}

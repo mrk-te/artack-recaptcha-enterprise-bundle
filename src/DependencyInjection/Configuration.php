@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\DependencyInjection;
+namespace Codein\RecaptchaEnterpriseBundle\DependencyInjection;
 
-use Artack\RecaptchaEnterpriseBundle\Form\RecaptchaEnterpriseType;
+use Codein\RecaptchaEnterpriseBundle\Form\RecaptchaEnterpriseType;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
@@ -15,11 +15,11 @@ final class Configuration implements ConfigurationInterface
      * it under that key to change any transport option — timeouts, proxy, TLS verification,
      * retries — rather than through settings this bundle would have to forward one by one.
      */
-    public const CLIENT_SERVICE = 'artack_recaptcha_enterprise.client';
+    public const CLIENT_SERVICE = 'codein_recaptcha_enterprise.client';
 
     public function getConfigTreeBuilder(): TreeBuilder
     {
-        $treeBuilder = new TreeBuilder('artack_recaptcha_enterprise');
+        $treeBuilder = new TreeBuilder('codein_recaptcha_enterprise');
 
         $treeBuilder->getRootNode()
             ->children()

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\Assessment;
+namespace Codein\RecaptchaEnterpriseBundle\Assessment;
 
-use Artack\RecaptchaEnterpriseBundle\Assessment\Exception\AssessmentExceptionInterface;
+use Codein\RecaptchaEnterpriseBundle\Assessment\Exception\AssessmentExceptionInterface;
 
 /**
  * The port between the domain and whatever talks to Google.

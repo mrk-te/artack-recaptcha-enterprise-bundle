@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\Tests\Fixtures;
+namespace Codein\RecaptchaEnterpriseBundle\Tests\Fixtures;
 
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidatorFactoryInterface;

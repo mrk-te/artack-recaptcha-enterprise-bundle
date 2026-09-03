@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\Tests\Validator;
+namespace Codein\RecaptchaEnterpriseBundle\Tests\Validator;
 
-use Artack\RecaptchaEnterpriseBundle\Assessment\InvalidReason;
-use Artack\RecaptchaEnterpriseBundle\Tests\Fixtures\FakeVerifier;
-use Artack\RecaptchaEnterpriseBundle\Validator\RecaptchaEnterprise;
-use Artack\RecaptchaEnterpriseBundle\Validator\RecaptchaEnterpriseValidator;
-use Artack\RecaptchaEnterpriseBundle\Verifier\Result;
+use Codein\RecaptchaEnterpriseBundle\Assessment\InvalidReason;
+use Codein\RecaptchaEnterpriseBundle\Tests\Fixtures\FakeVerifier;
+use Codein\RecaptchaEnterpriseBundle\Validator\RecaptchaEnterprise;
+use Codein\RecaptchaEnterpriseBundle\Validator\RecaptchaEnterpriseValidator;
+use Codein\RecaptchaEnterpriseBundle\Verifier\Result;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Symfony\Component\Validator\Exception\UnexpectedValueException;
 use Symfony\Component\Validator\Test\ConstraintValidatorTestCase;

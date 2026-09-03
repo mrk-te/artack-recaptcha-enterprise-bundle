@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\Tests\CaptchaFailure;
+namespace Codein\RecaptchaEnterpriseBundle\Tests\CaptchaFailure;
 
-use Artack\RecaptchaEnterpriseBundle\Assessment\InvalidReason;
-use Artack\RecaptchaEnterpriseBundle\CaptchaFailure\Exception\NoFailureException;
-use Artack\RecaptchaEnterpriseBundle\CaptchaFailure\Failure;
-use Artack\RecaptchaEnterpriseBundle\CaptchaFailure\Finder;
-use Artack\RecaptchaEnterpriseBundle\Form\RecaptchaEnterpriseType;
-use Artack\RecaptchaEnterpriseBundle\Tests\Fixtures\FakeVerifier;
-use Artack\RecaptchaEnterpriseBundle\Tests\Fixtures\FixedConstraintValidatorFactory;
-use Artack\RecaptchaEnterpriseBundle\Validator\RecaptchaEnterprise;
-use Artack\RecaptchaEnterpriseBundle\Validator\RecaptchaEnterpriseValidator;
-use Artack\RecaptchaEnterpriseBundle\Verifier\Result;
+use Codein\RecaptchaEnterpriseBundle\Assessment\InvalidReason;
+use Codein\RecaptchaEnterpriseBundle\CaptchaFailure\Exception\NoFailureException;
+use Codein\RecaptchaEnterpriseBundle\CaptchaFailure\Failure;
+use Codein\RecaptchaEnterpriseBundle\CaptchaFailure\Finder;
+use Codein\RecaptchaEnterpriseBundle\Form\RecaptchaEnterpriseType;
+use Codein\RecaptchaEnterpriseBundle\Tests\Fixtures\FakeVerifier;
+use Codein\RecaptchaEnterpriseBundle\Tests\Fixtures\FixedConstraintValidatorFactory;
+use Codein\RecaptchaEnterpriseBundle\Validator\RecaptchaEnterprise;
+use Codein\RecaptchaEnterpriseBundle\Validator\RecaptchaEnterpriseValidator;
+use Codein\RecaptchaEnterpriseBundle\Verifier\Result;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\Extension\Core\Type\FormType;

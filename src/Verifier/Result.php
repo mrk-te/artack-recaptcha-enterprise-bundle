@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\Verifier;
+namespace Codein\RecaptchaEnterpriseBundle\Verifier;
 
-use Artack\RecaptchaEnterpriseBundle\Assessment\InvalidReason;
+use Codein\RecaptchaEnterpriseBundle\Assessment\InvalidReason;
 
 final class Result
 {

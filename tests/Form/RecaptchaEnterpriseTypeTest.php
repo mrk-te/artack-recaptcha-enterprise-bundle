@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\Tests\Form;
+namespace Codein\RecaptchaEnterpriseBundle\Tests\Form;
 
-use Artack\RecaptchaEnterpriseBundle\Form\RecaptchaEnterpriseType;
+use Codein\RecaptchaEnterpriseBundle\Form\RecaptchaEnterpriseType;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\FormExtensionInterface;

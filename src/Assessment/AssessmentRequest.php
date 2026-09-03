@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\Assessment;
+namespace Codein\RecaptchaEnterpriseBundle\Assessment;
 
 /**
  * What the caller wants assessed.
