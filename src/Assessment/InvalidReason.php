@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\Assessment;
+namespace Codein\RecaptchaEnterpriseBundle\Assessment;
 
 /**
  * Why Google refused a token.

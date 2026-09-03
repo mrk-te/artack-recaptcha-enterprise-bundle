@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\DependencyInjection;
+namespace Codein\RecaptchaEnterpriseBundle\DependencyInjection;
 
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -11,7 +11,7 @@ use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
 
-final class ArtackRecaptchaEnterpriseExtension extends Extension implements PrependExtensionInterface
+final class CodeinRecaptchaEnterpriseExtension extends Extension implements PrependExtensionInterface
 {
     /**
      * @param array<array<string, mixed>> $configs
@@ -21,20 +21,20 @@ final class ArtackRecaptchaEnterpriseExtension extends Extension implements Prep
         /** @var array{enabled: bool, site_key: string, project_id: string, api_key: string, min_score: float, challenge: string, on_error: string, http_client_service: string} $config */
         $config = $this->processConfiguration(new Configuration(), $configs);
 
-        $container->setParameter('artack_recaptcha_enterprise.enabled', $config['enabled']);
-        $container->setParameter('artack_recaptcha_enterprise.site_key', $config['site_key']);
-        $container->setParameter('artack_recaptcha_enterprise.project_id', $config['project_id']);
-        $container->setParameter('artack_recaptcha_enterprise.api_key', $config['api_key']);
-        $container->setParameter('artack_recaptcha_enterprise.min_score', $config['min_score']);
-        $container->setParameter('artack_recaptcha_enterprise.challenge', $config['challenge']);
-        $container->setParameter('artack_recaptcha_enterprise.deny_on_error', 'deny' === $config['on_error']);
+        $container->setParameter('codein_recaptcha_enterprise.enabled', $config['enabled']);
+        $container->setParameter('codein_recaptcha_enterprise.site_key', $config['site_key']);
+        $container->setParameter('codein_recaptcha_enterprise.project_id', $config['project_id']);
+        $container->setParameter('codein_recaptcha_enterprise.api_key', $config['api_key']);
+        $container->setParameter('codein_recaptcha_enterprise.min_score', $config['min_score']);
+        $container->setParameter('codein_recaptcha_enterprise.challenge', $config['challenge']);
+        $container->setParameter('codein_recaptcha_enterprise.deny_on_error', 'deny' === $config['on_error']);
 
         $loader = new PhpFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
         $loader->load('services.php');
 
         // The client is a service reference, not a parameter, so it is wired here rather than in
         // services.php where the configuration is not in scope.
-        $container->getDefinition('artack_recaptcha_enterprise.gateway')
+        $container->getDefinition('codein_recaptcha_enterprise.gateway')
             ->replaceArgument(0, new Reference($config['http_client_service']))
         ;
     }
@@ -62,7 +62,7 @@ final class ArtackRecaptchaEnterpriseExtension extends Extension implements Prep
 
         if ($container->hasExtension('twig')) {
             $container->prependExtensionConfig('twig', [
-                'form_themes' => ['@ArtackRecaptchaEnterprise/Form/recaptcha_enterprise_widget.html.twig'],
+                'form_themes' => ['@CodeinRecaptchaEnterprise/Form/recaptcha_enterprise_widget.html.twig'],
             ]);
         }
     }
@@ -73,6 +73,6 @@ final class ArtackRecaptchaEnterpriseExtension extends Extension implements Prep
      */
     public function getAlias(): string
     {
-        return 'artack_recaptcha_enterprise';
+        return 'codein_recaptcha_enterprise';
     }
 }

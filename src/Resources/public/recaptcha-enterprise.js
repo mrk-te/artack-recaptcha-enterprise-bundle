@@ -1,21 +1,21 @@
 /*
- * artack/recaptcha-enterprise-bundle — submission handling for the form theme.
+ * codein/recaptcha-enterprise-bundle — submission handling for the form theme.
  *
  * Install it with `assets:install`, then load it from your layout:
  *
- *     <script src="{{ asset('bundles/artackrecaptchaenterprise/recaptcha-enterprise.js') }}" defer></script>
+ *     <script src="{{ asset('bundles/codeinrecaptchaenterprise/recaptcha-enterprise.js') }}" defer></script>
  *
  * The bundle never loads Google's enterprise.js: the application adds that tag itself, after the
- * visitor has consented, with `onload=artackRecaptchaOnload`.
+ * visitor has consented, with `onload=codeinRecaptchaOnload`.
  */
 (function () {
     'use strict';
 
-    if (window.artackRecaptcha) {
+    if (window.codeinRecaptcha) {
         return;
     }
 
-    var FIELD = '[data-artack-recaptcha]';
+    var FIELD = '[data-codein-recaptcha]';
     var READY_TIMEOUT = 10000;
     var POLL_INTERVAL = 100;
 
@@ -70,19 +70,19 @@
 
     function scoreFields(form) {
         return fields(form).filter(function (field) {
-            return 'checkbox' !== field.getAttribute('data-artack-recaptcha');
+            return 'checkbox' !== field.getAttribute('data-codein-recaptcha');
         });
     }
 
     function parameters(field) {
-        var action = field.getAttribute('data-artack-recaptcha-action');
+        var action = field.getAttribute('data-codein-recaptcha-action');
 
         // An unset action must be omitted, not sent as an empty string.
         return action ? {action: action} : {};
     }
 
     function renderCheckbox(field) {
-        var container = document.querySelector('[data-artack-recaptcha-container="' + field.id + '"]');
+        var container = document.querySelector('[data-codein-recaptcha-container="' + field.id + '"]');
 
         if (!container) {
             return;
@@ -90,9 +90,9 @@
 
         whenReady(function () {
             var options = {
-                sitekey: field.getAttribute('data-artack-recaptcha-sitekey'),
-                theme: container.getAttribute('data-artack-recaptcha-theme') || 'light',
-                size: container.getAttribute('data-artack-recaptcha-size') || 'normal',
+                sitekey: field.getAttribute('data-codein-recaptcha-sitekey'),
+                theme: container.getAttribute('data-codein-recaptcha-theme') || 'light',
+                size: container.getAttribute('data-codein-recaptcha-size') || 'normal',
                 callback: function (token) {
                     field.value = token;
                 },
@@ -106,7 +106,7 @@
                 }
             };
 
-            var action = field.getAttribute('data-artack-recaptcha-action');
+            var action = field.getAttribute('data-codein-recaptcha-action');
 
             if (action) {
                 options.action = action;
@@ -114,16 +114,16 @@
 
             // getResponse() and reset() need the widget id, which is the only handle on a widget
             // once several of them share a page.
-            field.artackRecaptchaWidget = grecaptcha.enterprise.render(container, options);
+            field.codeinRecaptchaWidget = grecaptcha.enterprise.render(container, options);
         });
     }
 
     function bindForm(form) {
-        if (!form || form.artackRecaptchaBound) {
+        if (!form || form.codeinRecaptchaBound) {
             return;
         }
 
-        form.artackRecaptchaBound = true;
+        form.codeinRecaptchaBound = true;
 
         var resubmitting = false;
         var pending = false;
@@ -182,7 +182,7 @@
                  * reports; a form left prevented with no message is not. Cancel the event to keep
                  * the submission blocked and handle it in the application.
                  */
-                var failure = new CustomEvent('artack-recaptcha:error', {bubbles: true, cancelable: true});
+                var failure = new CustomEvent('codein-recaptcha:error', {bubbles: true, cancelable: true});
 
                 if (form.dispatchEvent(failure)) {
                     scoreFields(form).forEach(function (field) {
@@ -206,7 +206,7 @@
             whenReady(function () {
                 try {
                     var tokens = scoreFields(form).map(function (field) {
-                        var key = field.getAttribute('data-artack-recaptcha-sitekey');
+                        var key = field.getAttribute('data-codein-recaptcha-sitekey');
 
                         return grecaptcha.enterprise.execute(key, parameters(field)).then(function (token) {
                             field.value = token;
@@ -222,17 +222,17 @@
     }
 
     function initialise(field) {
-        if (field.artackRecaptchaBound) {
+        if (field.codeinRecaptchaBound) {
             return;
         }
 
-        field.artackRecaptchaBound = true;
+        field.codeinRecaptchaBound = true;
 
         // A back-navigation can have the browser restore a spent token into the field, and Google
         // refuses a replayed token with DUPE.
         field.value = '';
 
-        if ('checkbox' === field.getAttribute('data-artack-recaptcha')) {
+        if ('checkbox' === field.getAttribute('data-codein-recaptcha')) {
             renderCheckbox(field);
 
             return;
@@ -241,9 +241,9 @@
         bindForm(field.form);
     }
 
-    window.artackRecaptchaOnload = drain;
+    window.codeinRecaptchaOnload = drain;
 
-    window.artackRecaptcha = {
+    window.codeinRecaptcha = {
         whenReady: whenReady,
         // Fields added after load — Turbo, Stimulus, an AJAX-loaded modal — are picked up here.
         refresh: function (root) {
@@ -253,9 +253,9 @@
 
     if ('loading' === document.readyState) {
         document.addEventListener('DOMContentLoaded', function () {
-            window.artackRecaptcha.refresh();
+            window.codeinRecaptcha.refresh();
         });
     } else {
-        window.artackRecaptcha.refresh();
+        window.codeinRecaptcha.refresh();
     }
 })();

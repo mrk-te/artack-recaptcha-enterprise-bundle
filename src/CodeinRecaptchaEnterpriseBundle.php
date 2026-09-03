@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle;
+namespace Codein\RecaptchaEnterpriseBundle;
 
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 
@@ -11,4 +11,4 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
  * the classic Bundle/Extension/Configuration trio to stay installable on 5.4. Bundle::getPath()
  * resolves to src/, which is why the form theme lives in src/Resources/views.
  */
-class ArtackRecaptchaEnterpriseBundle extends Bundle {}
+class CodeinRecaptchaEnterpriseBundle extends Bundle {}

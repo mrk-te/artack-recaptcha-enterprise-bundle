@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\Tests\Fixtures;
+namespace Codein\RecaptchaEnterpriseBundle\Tests\Fixtures;
 
-use Artack\RecaptchaEnterpriseBundle\Verifier\Result;
-use Artack\RecaptchaEnterpriseBundle\Verifier\VerifierInterface;
+use Codein\RecaptchaEnterpriseBundle\Verifier\Result;
+use Codein\RecaptchaEnterpriseBundle\Verifier\VerifierInterface;
 
 final class FakeVerifier implements VerifierInterface
 {

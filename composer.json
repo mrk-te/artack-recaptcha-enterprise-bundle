@@ -1,14 +1,35 @@
 {
-  "name": "artack/recaptcha-enterprise-bundle",
-  "description": "Symfony integration for Google reCAPTCHA Enterprise (Assessments API)",
+  "name": "codein/recaptcha-enterprise-bundle",
+  "description": "Symfony integration for Google reCAPTCHA Enterprise (Assessments API). Fork of artack/recaptcha-enterprise-bundle.",
   "type": "symfony-bundle",
   "license": "MIT",
+  "keywords": ["symfony", "bundle", "recaptcha", "recaptcha-enterprise", "captcha", "form", "spam"],
   "authors": [
     {
+      "name": "Codein-Labs",
+      "email": "labs@codein.fr",
+      "homepage": "https://www.codein.fr"
+    },
+    {
+      "name": "Marc Teinturier",
+      "role": "Maintainer",
+      "email": "marc.teinturier@codein.fr"
+    },
+    {
+      "name": "Louise Soulier",
+      "role": "Contributor",
+      "email": "louise.soulier@codein.fr"
+    },
+    {
       "name": "ARTACK WebLab GmbH",
-      "homepage": "https://www.artack.ch"
+      "homepage": "https://www.artack.ch",
+      "role": "Original author of artack/recaptcha-enterprise-bundle"
     }
   ],
+  "support": {
+    "issues": "https://github.com/Codein-Labs/recaptcha-enterprise-bundle/issues",
+    "source": "https://github.com/Codein-Labs/recaptcha-enterprise-bundle"
+  },
   "require": {
     "php": "^8.1",
     "symfony/form": "^5.4 || ^6.4 || ^7.4 || ^8.0",
@@ -25,12 +46,12 @@
   },
   "autoload": {
     "psr-4": {
-      "Artack\\RecaptchaEnterpriseBundle\\": "src/"
+      "Codein\\RecaptchaEnterpriseBundle\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "Artack\\RecaptchaEnterpriseBundle\\Tests\\": "tests/"
+      "Codein\\RecaptchaEnterpriseBundle\\Tests\\": "tests/"
     }
   },
   "config": {

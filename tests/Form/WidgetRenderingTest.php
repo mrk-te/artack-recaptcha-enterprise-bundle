@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\Tests\Form;
+namespace Codein\RecaptchaEnterpriseBundle\Tests\Form;
 
-use Artack\RecaptchaEnterpriseBundle\Form\RecaptchaEnterpriseType;
+use Codein\RecaptchaEnterpriseBundle\Form\RecaptchaEnterpriseType;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -51,10 +51,10 @@ final class WidgetRenderingTest extends TestCase
         $html = $this->render();
 
         self::assertStringContainsString('type="hidden"', $html);
-        self::assertStringContainsString('data-artack-recaptcha="score"', $html);
-        self::assertStringContainsString('data-artack-recaptcha-sitekey="'.self::SITE_KEY.'"', $html);
+        self::assertStringContainsString('data-codein-recaptcha="score"', $html);
+        self::assertStringContainsString('data-codein-recaptcha-sitekey="'.self::SITE_KEY.'"', $html);
         // The score challenge renders nothing visible, so there is no container.
-        self::assertStringNotContainsString('data-artack-recaptcha-container', $html);
+        self::assertStringNotContainsString('data-codein-recaptcha-container', $html);
     }
 
     public function testTheScoreChallengeIsTheDefault(): void
@@ -70,11 +70,11 @@ final class WidgetRenderingTest extends TestCase
             'size' => 'compact',
         ]);
 
-        self::assertStringContainsString('data-artack-recaptcha="checkbox"', $html);
+        self::assertStringContainsString('data-codein-recaptcha="checkbox"', $html);
         self::assertStringContainsString('class="recaptcha-enterprise__widget"', $html);
-        self::assertStringContainsString('data-artack-recaptcha-container="'.self::FIELD_ID.'"', $html);
-        self::assertStringContainsString('data-artack-recaptcha-theme="dark"', $html);
-        self::assertStringContainsString('data-artack-recaptcha-size="compact"', $html);
+        self::assertStringContainsString('data-codein-recaptcha-container="'.self::FIELD_ID.'"', $html);
+        self::assertStringContainsString('data-codein-recaptcha-theme="dark"', $html);
+        self::assertStringContainsString('data-codein-recaptcha-size="compact"', $html);
     }
 
     /**
@@ -86,7 +86,7 @@ final class WidgetRenderingTest extends TestCase
         $html = $this->render(['challenge' => 'checkbox']);
 
         self::assertStringContainsString('id="'.self::FIELD_ID.'"', $html);
-        self::assertStringContainsString('data-artack-recaptcha-container="'.self::FIELD_ID.'"', $html);
+        self::assertStringContainsString('data-codein-recaptcha-container="'.self::FIELD_ID.'"', $html);
     }
 
     /**
@@ -96,12 +96,12 @@ final class WidgetRenderingTest extends TestCase
     {
         foreach (['score', 'checkbox'] as $challenge) {
             self::assertStringNotContainsString(
-                'data-artack-recaptcha-action',
+                'data-codein-recaptcha-action',
                 $this->render(['challenge' => $challenge]),
             );
 
             self::assertStringContainsString(
-                'data-artack-recaptcha-action="contact"',
+                'data-codein-recaptcha-action="contact"',
                 $this->render(['challenge' => $challenge, 'action_name' => 'contact']),
             );
         }
@@ -136,7 +136,7 @@ final class WidgetRenderingTest extends TestCase
             $html = $this->render(['challenge' => $challenge]);
 
             self::assertStringContainsString('type="hidden"', $html);
-            self::assertStringNotContainsString('data-artack-recaptcha', $html);
+            self::assertStringNotContainsString('data-codein-recaptcha', $html);
             self::assertStringNotContainsString('recaptcha-enterprise__widget', $html);
         }
     }
@@ -185,7 +185,7 @@ final class WidgetRenderingTest extends TestCase
     {
         $this->boot(challenge: RecaptchaEnterpriseType::CHALLENGE_CHECKBOX);
 
-        self::assertStringContainsString('data-artack-recaptcha="checkbox"', $this->render());
+        self::assertStringContainsString('data-codein-recaptcha="checkbox"', $this->render());
     }
 
     private function boot(

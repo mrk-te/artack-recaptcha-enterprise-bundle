@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\Assessment\Exception;
+namespace Codein\RecaptchaEnterpriseBundle\Assessment\Exception;
 
 use RuntimeException;
 

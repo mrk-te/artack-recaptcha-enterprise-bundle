@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\Validator;
+namespace Codein\RecaptchaEnterpriseBundle\Validator;
 
 use Attribute;
 use Symfony\Component\Validator\Constraint;

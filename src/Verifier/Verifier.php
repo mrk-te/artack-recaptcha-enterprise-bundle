@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\Verifier;
+namespace Codein\RecaptchaEnterpriseBundle\Verifier;
 
-use Artack\RecaptchaEnterpriseBundle\Assessment\Assessment;
-use Artack\RecaptchaEnterpriseBundle\Assessment\AssessmentRequest;
-use Artack\RecaptchaEnterpriseBundle\Assessment\Exception\AssessmentExceptionInterface;
-use Artack\RecaptchaEnterpriseBundle\Assessment\GatewayInterface;
-use Artack\RecaptchaEnterpriseBundle\Assessment\InvalidReason;
+use Codein\RecaptchaEnterpriseBundle\Assessment\Assessment;
+use Codein\RecaptchaEnterpriseBundle\Assessment\AssessmentRequest;
+use Codein\RecaptchaEnterpriseBundle\Assessment\Exception\AssessmentExceptionInterface;
+use Codein\RecaptchaEnterpriseBundle\Assessment\GatewayInterface;
+use Codein\RecaptchaEnterpriseBundle\Assessment\InvalidReason;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 

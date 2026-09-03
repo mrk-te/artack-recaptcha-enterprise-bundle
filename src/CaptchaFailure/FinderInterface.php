@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\CaptchaFailure;
+namespace Codein\RecaptchaEnterpriseBundle\CaptchaFailure;
 
-use Artack\RecaptchaEnterpriseBundle\CaptchaFailure\Exception\NoFailureException;
+use Codein\RecaptchaEnterpriseBundle\CaptchaFailure\Exception\NoFailureException;
 use Symfony\Component\Form\FormInterface;
 
 /**

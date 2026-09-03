@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\Tests\DependencyInjection;
+namespace Codein\RecaptchaEnterpriseBundle\Tests\DependencyInjection;
 
-use Artack\RecaptchaEnterpriseBundle\Assessment\GatewayInterface;
-use Artack\RecaptchaEnterpriseBundle\CaptchaFailure\FinderInterface;
-use Artack\RecaptchaEnterpriseBundle\DependencyInjection\ArtackRecaptchaEnterpriseExtension;
-use Artack\RecaptchaEnterpriseBundle\DependencyInjection\Configuration;
-use Artack\RecaptchaEnterpriseBundle\Form\RecaptchaEnterpriseType;
-use Artack\RecaptchaEnterpriseBundle\Validator\RecaptchaEnterpriseValidator;
-use Artack\RecaptchaEnterpriseBundle\Verifier\VerifierInterface;
+use Codein\RecaptchaEnterpriseBundle\Assessment\GatewayInterface;
+use Codein\RecaptchaEnterpriseBundle\CaptchaFailure\FinderInterface;
+use Codein\RecaptchaEnterpriseBundle\DependencyInjection\CodeinRecaptchaEnterpriseExtension;
+use Codein\RecaptchaEnterpriseBundle\DependencyInjection\Configuration;
+use Codein\RecaptchaEnterpriseBundle\Form\RecaptchaEnterpriseType;
+use Codein\RecaptchaEnterpriseBundle\Validator\RecaptchaEnterpriseValidator;
+use Codein\RecaptchaEnterpriseBundle\Verifier\VerifierInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
@@ -24,9 +24,9 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * @internal
  */
-#[CoversClass(ArtackRecaptchaEnterpriseExtension::class)]
+#[CoversClass(CodeinRecaptchaEnterpriseExtension::class)]
 #[CoversClass(Configuration::class)]
-final class ArtackRecaptchaEnterpriseExtensionTest extends TestCase
+final class CodeinRecaptchaEnterpriseExtensionTest extends TestCase
 {
     private const MINIMAL_CONFIG = [
         'site_key' => 'a-site-key',
@@ -42,7 +42,7 @@ final class ArtackRecaptchaEnterpriseExtensionTest extends TestCase
         self::assertSame(0.5, $config['min_score']);
         self::assertSame('deny', $config['on_error']);
         self::assertSame('score', $config['challenge']);
-        self::assertSame('artack_recaptcha_enterprise.client', $config['http_client_service']);
+        self::assertSame('codein_recaptcha_enterprise.client', $config['http_client_service']);
     }
 
     /**
@@ -54,7 +54,7 @@ final class ArtackRecaptchaEnterpriseExtensionTest extends TestCase
         $container = new ContainerBuilder();
         $container->registerExtension($this->createExtension('framework'));
 
-        (new ArtackRecaptchaEnterpriseExtension())->prepend($container);
+        (new CodeinRecaptchaEnterpriseExtension())->prepend($container);
 
         self::assertSame([[
             'http_client' => [
@@ -71,7 +71,7 @@ final class ArtackRecaptchaEnterpriseExtensionTest extends TestCase
 
     public function testTheGatewayUsesTheScopedClientByDefault(): void
     {
-        $client = $this->load()->getDefinition('artack_recaptcha_enterprise.gateway')->getArgument(0);
+        $client = $this->load()->getDefinition('codein_recaptcha_enterprise.gateway')->getArgument(0);
 
         self::assertInstanceOf(Reference::class, $client);
         self::assertSame(Configuration::CLIENT_SERVICE, (string) $client);
@@ -80,7 +80,7 @@ final class ArtackRecaptchaEnterpriseExtensionTest extends TestCase
     public function testAScopedHttpClientCanBeInjected(): void
     {
         $client = $this->load(['http_client_service' => 'recaptcha.client'])
-            ->getDefinition('artack_recaptcha_enterprise.gateway')
+            ->getDefinition('codein_recaptcha_enterprise.gateway')
             ->getArgument(0)
         ;
 
@@ -120,15 +120,15 @@ final class ArtackRecaptchaEnterpriseExtensionTest extends TestCase
     {
         $container = $this->load();
 
-        self::assertTrue($container->hasDefinition('artack_recaptcha_enterprise.gateway'));
-        self::assertSame('artack_recaptcha_enterprise.gateway', (string) $container->getAlias(GatewayInterface::class));
+        self::assertTrue($container->hasDefinition('codein_recaptcha_enterprise.gateway'));
+        self::assertSame('codein_recaptcha_enterprise.gateway', (string) $container->getAlias(GatewayInterface::class));
 
-        self::assertTrue($container->hasDefinition('artack_recaptcha_enterprise.verifier'));
-        self::assertSame('artack_recaptcha_enterprise.verifier', (string) $container->getAlias(VerifierInterface::class));
+        self::assertTrue($container->hasDefinition('codein_recaptcha_enterprise.verifier'));
+        self::assertSame('codein_recaptcha_enterprise.verifier', (string) $container->getAlias(VerifierInterface::class));
 
-        self::assertTrue($container->hasDefinition('artack_recaptcha_enterprise.captcha_failure_finder'));
+        self::assertTrue($container->hasDefinition('codein_recaptcha_enterprise.captcha_failure_finder'));
         self::assertSame(
-            'artack_recaptcha_enterprise.captcha_failure_finder',
+            'codein_recaptcha_enterprise.captcha_failure_finder',
             (string) $container->getAlias(FinderInterface::class),
         );
 
@@ -143,17 +143,17 @@ final class ArtackRecaptchaEnterpriseExtensionTest extends TestCase
     {
         $container = $this->load(['min_score' => 0.7, 'enabled' => false]);
 
-        self::assertSame('a-site-key', $container->getParameter('artack_recaptcha_enterprise.site_key'));
-        self::assertSame('a-project', $container->getParameter('artack_recaptcha_enterprise.project_id'));
-        self::assertSame('an-api-key', $container->getParameter('artack_recaptcha_enterprise.api_key'));
-        self::assertSame(0.7, $container->getParameter('artack_recaptcha_enterprise.min_score'));
-        self::assertFalse($container->getParameter('artack_recaptcha_enterprise.enabled'));
-        self::assertTrue($container->getParameter('artack_recaptcha_enterprise.deny_on_error'));
+        self::assertSame('a-site-key', $container->getParameter('codein_recaptcha_enterprise.site_key'));
+        self::assertSame('a-project', $container->getParameter('codein_recaptcha_enterprise.project_id'));
+        self::assertSame('an-api-key', $container->getParameter('codein_recaptcha_enterprise.api_key'));
+        self::assertSame(0.7, $container->getParameter('codein_recaptcha_enterprise.min_score'));
+        self::assertFalse($container->getParameter('codein_recaptcha_enterprise.enabled'));
+        self::assertTrue($container->getParameter('codein_recaptcha_enterprise.deny_on_error'));
     }
 
     public function testTheDefaultChallengeIsBound(): void
     {
-        self::assertSame('checkbox', $this->load(['challenge' => 'checkbox'])->getParameter('artack_recaptcha_enterprise.challenge'));
+        self::assertSame('checkbox', $this->load(['challenge' => 'checkbox'])->getParameter('codein_recaptcha_enterprise.challenge'));
     }
 
     /**
@@ -166,13 +166,13 @@ final class ArtackRecaptchaEnterpriseExtensionTest extends TestCase
             ->getArguments()
         ;
 
-        self::assertSame('%artack_recaptcha_enterprise.challenge%', $arguments[2]);
+        self::assertSame('%codein_recaptcha_enterprise.challenge%', $arguments[2]);
         self::assertCount(3, $arguments);
     }
 
     public function testTheOutagePolicyIsBoundAsABoolean(): void
     {
-        self::assertFalse($this->load(['on_error' => 'allow'])->getParameter('artack_recaptcha_enterprise.deny_on_error'));
+        self::assertFalse($this->load(['on_error' => 'allow'])->getParameter('codein_recaptcha_enterprise.deny_on_error'));
     }
 
     public function testContainerCompiles(): void
@@ -180,11 +180,11 @@ final class ArtackRecaptchaEnterpriseExtensionTest extends TestCase
         $container = $this->load();
         $container->register('request_stack', RequestStack::class);
         $container->register(Configuration::CLIENT_SERVICE, MockHttpClient::class);
-        $container->getDefinition('artack_recaptcha_enterprise.verifier')->setPublic(true);
+        $container->getDefinition('codein_recaptcha_enterprise.verifier')->setPublic(true);
         $container->compile();
 
         self::assertTrue($container->isCompiled());
-        self::assertTrue($container->hasDefinition('artack_recaptcha_enterprise.verifier'));
+        self::assertTrue($container->hasDefinition('codein_recaptcha_enterprise.verifier'));
     }
 
     public function testTwigFormThemeIsPrepended(): void
@@ -192,10 +192,10 @@ final class ArtackRecaptchaEnterpriseExtensionTest extends TestCase
         $container = new ContainerBuilder();
         $container->registerExtension($this->createExtension('twig'));
 
-        (new ArtackRecaptchaEnterpriseExtension())->prepend($container);
+        (new CodeinRecaptchaEnterpriseExtension())->prepend($container);
 
         self::assertSame(
-            [['form_themes' => ['@ArtackRecaptchaEnterprise/Form/recaptcha_enterprise_widget.html.twig']]],
+            [['form_themes' => ['@CodeinRecaptchaEnterprise/Form/recaptcha_enterprise_widget.html.twig']]],
             $container->getExtensionConfig('twig'),
         );
     }
@@ -207,7 +207,7 @@ final class ArtackRecaptchaEnterpriseExtensionTest extends TestCase
     {
         $container = new ContainerBuilder();
 
-        (new ArtackRecaptchaEnterpriseExtension())->prepend($container);
+        (new CodeinRecaptchaEnterpriseExtension())->prepend($container);
 
         self::assertSame([], $container->getExtensionConfig('twig'));
         self::assertSame([], $container->getExtensionConfig('framework'));
@@ -233,7 +233,7 @@ final class ArtackRecaptchaEnterpriseExtensionTest extends TestCase
     private function load(array $config = []): ContainerBuilder
     {
         $container = new ContainerBuilder();
-        (new ArtackRecaptchaEnterpriseExtension())->load([$config + self::MINIMAL_CONFIG], $container);
+        (new CodeinRecaptchaEnterpriseExtension())->load([$config + self::MINIMAL_CONFIG], $container);
 
         return $container;
     }

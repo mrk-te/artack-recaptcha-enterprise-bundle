@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\CaptchaFailure;
+namespace Codein\RecaptchaEnterpriseBundle\CaptchaFailure;
 
-use Artack\RecaptchaEnterpriseBundle\Assessment\InvalidReason;
-use Artack\RecaptchaEnterpriseBundle\Validator\RecaptchaEnterprise;
-use Artack\RecaptchaEnterpriseBundle\Verifier\Result;
+use Codein\RecaptchaEnterpriseBundle\Assessment\InvalidReason;
+use Codein\RecaptchaEnterpriseBundle\Validator\RecaptchaEnterprise;
+use Codein\RecaptchaEnterpriseBundle\Verifier\Result;
 use Symfony\Component\Validator\ConstraintViolation;
 
 /**

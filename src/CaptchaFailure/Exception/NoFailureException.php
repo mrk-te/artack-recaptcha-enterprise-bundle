@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\CaptchaFailure\Exception;
+namespace Codein\RecaptchaEnterpriseBundle\CaptchaFailure\Exception;
 
 use LogicException;
 

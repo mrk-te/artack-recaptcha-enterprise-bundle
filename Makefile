@@ -1,4 +1,4 @@
-## artack/recaptcha-enterprise-bundle — everything runs in Docker, no local PHP needed.
+## codein/recaptcha-enterprise-bundle — everything runs in Docker, no local PHP needed.
 ##
 ## Composer runs inside the PHP_VERSION image, so dependencies are resolved for the PHP version
 ## they will actually run on. The default is the lowest supported stack (PHP 8.1 with the lowest
@@ -6,14 +6,14 @@
 ## Use `make update-latest`, or `PHP_VERSION=8.4`, to work against a newer stack.
 
 PHP_VERSION ?= 8.1
-IMAGE ?= artack-recaptcha-enterprise-bundle:php$(PHP_VERSION)
+IMAGE ?= codein-recaptcha-enterprise-bundle:php$(PHP_VERSION)
 STAMP := .make/image-$(PHP_VERSION)
 
 # The QA tools are pinned by tools/*/composer.lock, which needs a recent PHP. They analyse the
 # code rather than run it, and phpstan.neon pins the analysed PHP range, so this is independent
 # of PHP_VERSION.
 TOOLS_PHP_VERSION ?= 8.4
-TOOLS_IMAGE ?= artack-recaptcha-enterprise-bundle:php$(TOOLS_PHP_VERSION)
+TOOLS_IMAGE ?= codein-recaptcha-enterprise-bundle:php$(TOOLS_PHP_VERSION)
 TOOLS_STAMP := .make/image-$(TOOLS_PHP_VERSION)
 
 COMPOSER_CACHE ?= $(HOME)/.cache/composer
@@ -90,6 +90,6 @@ tools/php-cs-fixer/vendor: tools/php-cs-fixer/composer.json tools/php-cs-fixer/c
 
 # One stamp per PHP version; the pattern covers both $(IMAGE) and $(TOOLS_IMAGE).
 .make/image-%: docker/Dockerfile
-	docker build --build-arg PHP_VERSION=$* --tag artack-recaptcha-enterprise-bundle:php$* docker
+	docker build --build-arg PHP_VERSION=$* --tag codein-recaptcha-enterprise-bundle:php$* docker
 	@mkdir -p $(dir $@)
 	@touch $@

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\Tests\Verifier;
+namespace Codein\RecaptchaEnterpriseBundle\Tests\Verifier;
 
-use Artack\RecaptchaEnterpriseBundle\Assessment\Assessment;
-use Artack\RecaptchaEnterpriseBundle\Assessment\Exception\TransportException;
-use Artack\RecaptchaEnterpriseBundle\Assessment\InvalidReason;
-use Artack\RecaptchaEnterpriseBundle\Tests\Fixtures\FakeGateway;
-use Artack\RecaptchaEnterpriseBundle\Verifier\Result;
-use Artack\RecaptchaEnterpriseBundle\Verifier\Verifier;
+use Codein\RecaptchaEnterpriseBundle\Assessment\Assessment;
+use Codein\RecaptchaEnterpriseBundle\Assessment\Exception\TransportException;
+use Codein\RecaptchaEnterpriseBundle\Assessment\InvalidReason;
+use Codein\RecaptchaEnterpriseBundle\Tests\Fixtures\FakeGateway;
+use Codein\RecaptchaEnterpriseBundle\Verifier\Result;
+use Codein\RecaptchaEnterpriseBundle\Verifier\Verifier;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;

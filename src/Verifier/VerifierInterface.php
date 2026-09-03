@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Artack\RecaptchaEnterpriseBundle\Verifier;
+namespace Codein\RecaptchaEnterpriseBundle\Verifier;
 
 interface VerifierInterface
 {
