@@ -101,6 +101,17 @@ final class RecaptchaEnterpriseTypeTest extends TypeTestCase
         self::assertFalse($form->getConfig()->getMapped());
     }
 
+    /**
+     * HiddenType bubbles its errors to the parent, which would leave the theme's row block with
+     * nothing to render and the visitor with no message beside the widget.
+     */
+    public function testTheFieldKeepsItsOwnErrors(): void
+    {
+        $form = $this->factory->create(RecaptchaEnterpriseType::class);
+
+        self::assertFalse($form->getConfig()->getErrorBubbling());
+    }
+
     public function testDisabledBundleIsExposedToTheView(): void
     {
         $factory = $this->getFormFactoryWith(enabled: false);

@@ -54,6 +54,10 @@ final class RecaptchaEnterpriseType extends AbstractType
     {
         $resolver->setDefaults([
             'mapped' => false,
+            // HiddenType passes its errors to the parent, which would leave the visitor with no
+            // message beside the widget — and none at all on a form rendered field by field. The
+            // theme's row block renders it instead; set this back to true for a form-level summary.
+            'error_bubbling' => false,
             'action_name' => null,
             'theme' => 'light',
             'size' => 'normal',

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Artack\RecaptchaEnterpriseBundle\Tests\DependencyInjection;
 
 use Artack\RecaptchaEnterpriseBundle\Assessment\GatewayInterface;
+use Artack\RecaptchaEnterpriseBundle\CaptchaFailure\FinderInterface;
 use Artack\RecaptchaEnterpriseBundle\DependencyInjection\ArtackRecaptchaEnterpriseExtension;
 use Artack\RecaptchaEnterpriseBundle\DependencyInjection\Configuration;
 use Artack\RecaptchaEnterpriseBundle\Form\RecaptchaEnterpriseType;
@@ -124,6 +125,12 @@ final class ArtackRecaptchaEnterpriseExtensionTest extends TestCase
 
         self::assertTrue($container->hasDefinition('artack_recaptcha_enterprise.verifier'));
         self::assertSame('artack_recaptcha_enterprise.verifier', (string) $container->getAlias(VerifierInterface::class));
+
+        self::assertTrue($container->hasDefinition('artack_recaptcha_enterprise.captcha_failure_finder'));
+        self::assertSame(
+            'artack_recaptcha_enterprise.captcha_failure_finder',
+            (string) $container->getAlias(FinderInterface::class),
+        );
 
         self::assertArrayHasKey(
             'validator.constraint_validator',

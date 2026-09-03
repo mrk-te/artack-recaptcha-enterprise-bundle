@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Artack\RecaptchaEnterpriseBundle\Assessment\GatewayInterface;
 use Artack\RecaptchaEnterpriseBundle\Assessment\HttpGateway;
+use Artack\RecaptchaEnterpriseBundle\CaptchaFailure\Finder;
+use Artack\RecaptchaEnterpriseBundle\CaptchaFailure\FinderInterface;
 use Artack\RecaptchaEnterpriseBundle\Form\RecaptchaEnterpriseType;
 use Artack\RecaptchaEnterpriseBundle\Validator\RecaptchaEnterpriseValidator;
 use Artack\RecaptchaEnterpriseBundle\Verifier\Verifier;
@@ -37,6 +39,10 @@ return static function (ContainerConfigurator $container): void {
     ;
 
     $services->alias(VerifierInterface::class, 'artack_recaptcha_enterprise.verifier');
+
+    $services->set('artack_recaptcha_enterprise.captcha_failure_finder', Finder::class);
+
+    $services->alias(FinderInterface::class, 'artack_recaptcha_enterprise.captcha_failure_finder');
 
     $services->set(RecaptchaEnterpriseValidator::class)
         ->args([

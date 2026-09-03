@@ -19,6 +19,9 @@ Features
 - Automatically resolves the client IP, User-Agent and requested URI from Symfony's request stack and forwards
   them to Google when available, so the risk analysis has more than a bare token to work with.
 - Registers the form theme automatically, so no manual Twig configuration is required.
+- Ships the **captcha failure finder** as an autowired service, `CaptchaFailure\FinderInterface`: type-hint it in a
+  controller and `has($form)` / `get($form)` say why the captcha was refused — the score, the reason Google gave, or
+  that Google could not be asked — instead of a walk through the form errors. See "Handling a failed captcha".
 - Separates deciding from calling: a `Verifier` holding the policy, and a gateway port with a single HTTP
   implementation, so an unreachable API is never mistaken for an invalid token.
 
@@ -135,8 +138,12 @@ when@dev:
 ```
 
 `site_key`, `project_id` and `api_key` are required. `min_score` defaults to `0.5` and is used when a constraint
-does not define its own threshold; set it to `0` to disable the score check entirely, which is what checkbox keys
-without score based protection need.
+does not define its own threshold; set it to `0` to disable the score check entirely, which is what the checkbox
+challenge normally wants — see "Choosing the challenge".
+
+> ⚠️ Google has eleven score levels between `0.0` and `1.0`, but a project **without a billing account only ever
+> receives four of them: `0.1`, `0.3`, `0.7` and `0.9`**. A threshold of `0.5` there means `0.7` in practice,
+> which is much stricter than it reads.
 
 ### Configuring the HTTP client
 
@@ -191,13 +198,14 @@ for the other one would send the wrong key and Google would refuse it with `KEY_
 | Value | What the visitor sees | What Google returns |
 |---|---|---|
 | `score` (default) | Nothing. The token is fetched on submit. | A risk analysis score, judged against `min_score`. |
-| `checkbox` | The "I'm not a robot" checkbox. | A valid or invalid token; a score only if the key is configured for it. |
+| `checkbox` | The "I'm not a robot" checkbox. | A valid or invalid token, plus a risk analysis score. |
 
 > ⚠️ The two are **not interchangeable**: a score key and a checkbox key are different key types in the Google
 > console. Pointing `site_key` at the wrong one makes every assessment fail with `KEY_MISMATCH`.
 
-Checkbox keys often carry no risk analysis. Since the score check fails closed, set `min_score: 0` unless the key
-is explicitly configured to return a score:
+Checkbox keys are scored too — Google returns a score "regardless of the key type" — but on this challenge
+the verdict is the validity of the token: the visitor solved the challenge Google itself decided to set. A threshold on
+top of that refuses someone who passed it, and the widget offers no second attempt, so set `min_score: 0`:
 
 ```yaml
 artack_recaptcha_enterprise:
@@ -270,7 +278,8 @@ $result->raw;                  // the untouched payload
 ```
 
 Inside a validator, the same `Result` is attached to the violation as its cause, so
-`$violation->getCause()` reaches it without calling the verifier again.
+`$violation->getCause()` reaches it without calling the verifier again. From a controller, reach for the
+finder described in "Handling a failed captcha" rather than unwrapping the form errors by hand.
 
 Usage
 -----
@@ -339,9 +348,106 @@ Render the field with `form_row()`, or let `form_widget(form)` render the whole 
 Calling `form_widget(form.recaptchaToken)` on its own renders the field **without** the error, as with any
 Symfony field. The field inherits from `HiddenType`, whose `hidden_row` block renders the widget alone — so
 without the bundle's own row block the visitor would be refused with no message at all. Errors do not reach
-`form_errors(form)` either: `error_bubbling` defaults to `false` on a non-compound field.
+`form_errors(form)` either: `HiddenType` passes them to the parent, and the type sets `error_bubbling` back to
+`false` so the message stays beside the widget.
 
 Set `error_bubbling: true` on the field if you would rather collect the message in the form-level summary.
+
+### Handling a failed captcha
+
+The message the visitor sees is deliberately vague. Everything the application needs to react — the score, the
+reason Google gave, whether Google answered at all — is attached to the violation, and the finder reads it back:
+
+```php
+use Artack\RecaptchaEnterpriseBundle\CaptchaFailure\FinderInterface;
+
+public function __construct(private readonly FinderInterface $captchaFailures) {}
+
+// ...
+if ($form->isSubmitted() && !$form->isValid() && $this->captchaFailures->has($form)) {
+    $failure = $this->captchaFailures->get($form);
+    // react to $failure, then re-render the form
+}
+```
+
+`has()` answers the question, `get()` returns the failure and throws a `NoFailureException` when there is none —
+there is no null to guard against. Pass the form you validated: the whole tree is searched, so the captcha field
+is never named and renaming it breaks nothing. Passing the field itself works too.
+
+A failure is exactly one of three:
+
+| | Meaning | `getScore()` | `getInvalidReason()` |
+|---|---|---|---|
+| `isInvalidToken()` | No token, or Google refused the one submitted | `null` | The reason, e.g. `EXPIRED` |
+| `isLowScore()` | Genuine token, risk analysis below the threshold | The score | `null` |
+| `isUnavailable()` | Google could not be asked at all | `null` | `null` |
+
+`isUnavailable()` never fires under `on_error: allow`, which refuses nothing. The raw assessment stays available
+as `$failure->result` or `$failure->getResult()`, and the violation as `$failure->violation` or
+`$failure->getViolation()`.
+
+The finder never looks at the challenge — it reads what the validator recorded, and that validator has a single
+code path — but the two challenges do not fail the same way, so what is worth handling differs.
+
+#### With the score challenge
+
+All three outcomes are reachable. The interesting one is the low score: the token was genuine and Google
+assessed it, the risk analysis simply stayed under `min_score`. There is nothing the visitor can do about it, so
+the useful reaction is on your side — log it, raise a flag, ask for a second factor:
+
+```php
+if ($failure->isLowScore()) {
+    $logger->warning('reCAPTCHA refused {score} on {action}', [
+        'score' => $failure->getScore(),
+        'action' => $failure->result->action,
+    ]);
+} elseif ($failure->isUnavailable()) {
+    $this->addFlash('warning', 'The captcha service is unreachable, please try again in a moment.');
+}
+```
+
+The failure then carries a full assessment — note that `success` and `valid` are both `true`, which is what
+separates a low score from a refused token:
+
+```text
+violation  code = LOW_SCORE_ERROR, parameters {{ reason }} = "NONE", {{ score }} = "0.1"
+result     success = true, valid = true, action = "contact", score = 0.1,
+           invalidReason = null, error = null, raw = [the whole payload]
+```
+
+`$failure->result->raw` holds Google's untouched answer, so the risk analysis `reasons` are there for a log
+line even though the bundle does not model them.
+
+#### With the checkbox challenge
+
+With `min_score: 0` the score is never held to a threshold, so `isLowScore()` never fires, and a refused token
+carries no risk analysis, so `getScore()` stays `null` — a property of the refusal rather than of checkbox keys,
+which Google scores like any other. What to handle instead is that refused token, since the checkbox is only
+valid for about two minutes:
+
+```php
+if ($failure->isInvalidToken()) {
+    $this->addFlash('warning', match ($failure->getInvalidReason()) {
+        InvalidReason::EXPIRED => 'Please tick the checkbox again, it expired.',
+        InvalidReason::MISSING => 'Please tick the checkbox.',
+        default => 'The captcha could not be verified, please try again.',
+    });
+}
+```
+
+Both reasons produce the same failure shape, but not the same story: `MISSING` never reached Google at all — the
+field was empty, so `raw` is empty too — whereas `EXPIRED` comes back from a real assessment:
+
+```text
+violation  code = INVALID_TOKEN_ERROR, parameters {{ reason }} = "EXPIRED", {{ score }} = "null"
+result     success = false, valid = false, action = null, score = null,
+           invalidReason = InvalidReason::EXPIRED, error = null, raw = [the whole payload]
+```
+
+One trap: `isLowScore()` is unreachable here only because `min_score` is `0`. Leave the default `0.5` on
+a checkbox key and a visitor who ticked the box is still refused whenever Google scores the interaction
+below the threshold — with no second attempt to offer, since the challenge was already passed. Raise the
+threshold above `0` only if the application answers a low score with something other than a refusal.
 
 ### Loading the scripts
 
@@ -439,6 +545,9 @@ The gateway throws, rather than returning a failed assessment, whenever Google d
 All three implement `AssessmentExceptionInterface`. `Verifier` catches it, so no exception ever escapes into form
 validation.
 
+The split holds on the way back too: the `CaptchaFailure\Finder` only reads what the validator recorded on the
+violation. It decides nothing, which is why it needs no configuration and no dependencies.
+
 Development
 -----------
 
@@ -469,8 +578,10 @@ Upgrading from artack/recaptcha-enterprise-bundle:0.2.0
 
 What changed : 
 
-- **New feature.** The `checkbox` challenge sits beside the invisible `score` one. It is an application wide
+- **New features.** The `checkbox` challenge sits beside the invisible `score` one. It is an application wide
   choice, not a form option: `site_key` is a single global value and the two challenges need different key types.
+  The captcha failure finder, `CaptchaFailure\FinderInterface`, is an autowired service a controller type-hints to
+  ask why a captcha was refused, see "Handling a failed captcha".
 - **Requirements.** Symfony `5.4`, `6.4` and `7.4` are supported alongside `8.x`; `7.0` to `7.3` are not.
   PHP stays at `^8.2`, and `symfony/http-foundation` became an explicit requirement.
 - **Configuration.** Every existing key keeps its name and meaning; `challenge`, `on_error` and
@@ -513,6 +624,10 @@ What changed :
 - **The violation is now rendered.** The field inherits from `HiddenType`, so `form_row()` fell through
   to `hidden_row`, which emits the widget alone — the message was raised and silently dropped. The theme now
   defines `recaptcha_enterprise_row`. If you worked around this with your own row block, drop it.
+- **The violation no longer bubbles to the form.** `HiddenType`, which the field inherits from, passes its
+  errors to the parent, so the message landed in `form_errors(form)` and never beside the widget — where a
+  refused checkbox has to say "tick it again". The type now sets `error_bubbling` to `false`. Set it back to
+  `true` on the field to collect the message in the form-level summary as before.
 - **The default message is now `The captcha did not validate.`**, previously
   `You may be sending automated requests.` Pass `message:` to the constraint to keep the old wording.
 - **Violations now carry context**: the `{{ reason }}` and `{{ score }}` parameters, the `Result` as the violation
@@ -552,6 +667,12 @@ What changed :
   instead of leaving the submission blocked with no message.
 - The checkbox container's class is `recaptcha-enterprise__widget`. It was `g-recaptcha-enterprise`, which read
   as a Google-owned hook.
+- `CaptchaFailure\FinderInterface` is new, autowired and aliased to the
+  `artack_recaptcha_enterprise.captcha_failure_finder` service. Type-hint it in a controller: `has($form)` answers
+  whether the captcha is what failed, `get($form)` returns the `Failure` — the violation and the assessment side by
+  side, with `isInvalidToken()`, `isLowScore()` and `isUnavailable()` over them — and throws `NoFailureException`
+  rather than handing back a null. It replaces the error walk an application had to write itself, and reads the same
+  regardless of which challenge is configured. Nothing to change when upgrading.
 
 ### Requirements
 
