@@ -7,7 +7,7 @@ parameters:
 
   # The analysed sources must hold for every supported PHP version, whatever the runtime is.
   phpVersion:
-    min: 80200
+    min: 80100
     max: 80400
 
   # The bundle supports Symfony 5.4 up to 8.x, whose stubs differ; an ignore that matches on one

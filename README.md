@@ -30,11 +30,12 @@ Requirements
 
 | Requirement | Supported versions |
 |---|---|
-| PHP | 8.2, 8.3, 8.4 |
+| PHP | 8.1, 8.2, 8.3, 8.4 |
 | Symfony | 5.4 LTS, 6.4 LTS, 7.4 LTS, 8.x |
 
-Every combination is covered by the CI matrix, together with a `--prefer-lowest` build that proves the declared minimums
-actually install and work.
+Every installable combination is covered by the CI matrix, together with a `--prefer-lowest` build that proves the
+declared minimums actually install and work. Symfony itself narrows the grid: 7.4 requires PHP 8.2 and 8.x requires
+PHP 8.4, so those pairs are not built on older runtimes.
 
 Symfony 5.4 is end of life upstream but supported here on purpose. Its components raise PHP deprecations that the bundle
 cannot fix, so the test suite does not fail on deprecations.
@@ -562,7 +563,7 @@ $ make cs-fix    # fix the coding standards
 $ make qa        # run all of the above
 ```
 
-The default stack is the lowest supported one, PHP 8.2 with `--prefer-lowest --prefer-stable`, which is what proves
+The default stack is the lowest supported one, PHP 8.1 with `--prefer-lowest --prefer-stable`, which is what proves
 the declared requirements hold. Override it to work against a newer stack:
 
 ```shell
@@ -583,7 +584,7 @@ What changed :
   The captcha failure finder, `CaptchaFailure\FinderInterface`, is an autowired service a controller type-hints to
   ask why a captcha was refused, see "Handling a failed captcha".
 - **Requirements.** Symfony `5.4`, `6.4` and `7.4` are supported alongside `8.x`; `7.0` to `7.3` are not.
-  PHP stays at `^8.2`, and `symfony/http-foundation` became an explicit requirement.
+  The PHP floor drops to `^8.1`, and `symfony/http-foundation` became an explicit requirement.
 - **Configuration.** Every existing key keeps its name and meaning; `challenge`, `on_error` and
   `http_client_service` are new and optional. The `locale` and `script_csp_nonce` form options are removed,
   `theme` and `size` are new.
@@ -677,7 +678,8 @@ What changed :
 ### Requirements
 
 - Symfony `5.4`, `6.4` and `7.4` are now supported alongside `8.x`; `7.0` to `7.3` are not, the supported 7.x line
-  is the LTS. PHP stays at `^8.2`.
+  is the LTS. The PHP floor drops from `^8.2` to `^8.1`; Symfony 7.4 and 8.x still need PHP 8.2 and 8.4 respectively,
+  so an 8.1 runtime is limited to the 5.4 and 6.4 lines.
 - `symfony/http-foundation` is now an explicit requirement. It was already installed in practice, through
   `symfony/framework-bundle`.
 

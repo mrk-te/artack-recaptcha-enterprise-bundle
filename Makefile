@@ -1,11 +1,11 @@
 ## artack/recaptcha-enterprise-bundle — everything runs in Docker, no local PHP needed.
 ##
 ## Composer runs inside the PHP_VERSION image, so dependencies are resolved for the PHP version
-## they will actually run on. The default is the lowest supported stack (PHP 8.2 with the lowest
+## they will actually run on. The default is the lowest supported stack (PHP 8.1 with the lowest
 ## allowed dependency versions), which is what proves the declared requirements hold.
 ## Use `make update-latest`, or `PHP_VERSION=8.4`, to work against a newer stack.
 
-PHP_VERSION ?= 8.2
+PHP_VERSION ?= 8.1
 IMAGE ?= artack-recaptcha-enterprise-bundle:php$(PHP_VERSION)
 STAMP := .make/image-$(PHP_VERSION)
 

@@ -10,14 +10,14 @@ namespace Artack\RecaptchaEnterpriseBundle\Assessment;
  * The site key belongs here rather than to the gateway: it is part of the event Google assesses,
  * while the project only identifies the endpoint the gateway talks to.
  */
-final readonly class AssessmentRequest
+final class AssessmentRequest
 {
     public function __construct(
-        public string $siteKey,
-        public string $token,
-        public ?string $expectedAction = null,
-        public ?string $userIpAddress = null,
-        public ?string $userAgent = null,
-        public ?string $requestedUri = null,
+        public readonly string $siteKey,
+        public readonly string $token,
+        public readonly ?string $expectedAction = null,
+        public readonly ?string $userIpAddress = null,
+        public readonly ?string $userAgent = null,
+        public readonly ?string $requestedUri = null,
     ) {}
 }

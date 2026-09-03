@@ -17,11 +17,11 @@ use Symfony\Component\Validator\ConstraintViolation;
  * cannot be told from an accepted one by looking at the assessment alone: the threshold lives in
  * the constraint, which the result never sees.
  */
-final readonly class Failure
+final class Failure
 {
     public function __construct(
-        public ConstraintViolation $violation,
-        public Result $result,
+        public readonly ConstraintViolation $violation,
+        public readonly Result $result,
     ) {}
 
     /**

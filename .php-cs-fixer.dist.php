@@ -32,8 +32,8 @@ return $config
     ->setParallelConfig(ParallelConfigFactory::detect())
     ->setRiskyAllowed(true)
     ->setRules([
-        '@PHP8x3Migration' => true,
-        '@PHP8x2Migration:risky' => true,
+        '@PHP8x1Migration' => true,
+        '@PHP8x0Migration:risky' => true,
         '@PhpCsFixer' => true,
         '@PhpCsFixer:risky' => true,
         'attribute_empty_parentheses' => true,

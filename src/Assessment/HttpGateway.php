@@ -23,7 +23,7 @@ use function sprintf;
  * applications held at ramsey/uuid 3.x. A second gateway can be added behind GatewayInterface
  * without the domain noticing.
  */
-final readonly class HttpGateway implements GatewayInterface
+final class HttpGateway implements GatewayInterface
 {
     private const ENDPOINT = 'https://recaptchaenterprise.googleapis.com/v1/projects/%s/assessments';
 
@@ -33,9 +33,9 @@ final readonly class HttpGateway implements GatewayInterface
      * reconfigure all of it in one place instead of through a handful of forwarded settings.
      */
     public function __construct(
-        private HttpClientInterface $httpClient,
-        private string $projectId,
-        private string $apiKey,
+        private readonly HttpClientInterface $httpClient,
+        private readonly string $projectId,
+        private readonly string $apiKey,
     ) {}
 
     public function assess(AssessmentRequest $request): Assessment

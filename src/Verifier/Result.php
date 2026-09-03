@@ -6,7 +6,7 @@ namespace Artack\RecaptchaEnterpriseBundle\Verifier;
 
 use Artack\RecaptchaEnterpriseBundle\Assessment\InvalidReason;
 
-final readonly class Result
+final class Result
 {
     /**
      * @param bool                 $success whether the token may be accepted, score aside
@@ -15,13 +15,13 @@ final readonly class Result
      * @param null|string          $error   set when no assessment could be obtained at all
      */
     public function __construct(
-        public bool $success,
-        public bool $valid,
-        public ?string $action = null,
-        public ?float $score = null,
-        public ?InvalidReason $invalidReason = null,
-        public array $raw = [],
-        public ?string $error = null,
+        public readonly bool $success,
+        public readonly bool $valid,
+        public readonly ?string $action = null,
+        public readonly ?float $score = null,
+        public readonly ?InvalidReason $invalidReason = null,
+        public readonly array $raw = [],
+        public readonly ?string $error = null,
     ) {}
 
     /**
